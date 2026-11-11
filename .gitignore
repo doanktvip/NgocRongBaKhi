@@ -1,11 +1,25 @@
 # ==========================================
-# Bỏ qua các file cài đặt nặng > 100MB trong Eff (GitHub chặn file > 100MB)
+# 1. Bỏ qua các bộ cài đặt nặng trong Eff (> 100MB)
 # ==========================================
-ToolCaiGameV3/Eff/*.exe
 ToolCaiGameV3/Eff/
 
 # ==========================================
-# Bỏ qua các file nén dung lượng lớn & video
+# 2. Bỏ qua tài nguyên game tĩnh (chỉ giữ lại LOGIC GAME)
+# ==========================================
+ToolCaiGameV3/Source/Teamobi2026/data/
+ToolCaiGameV3/Source/WebTeamobi/icon/
+ToolCaiGameV3/Source/WebTeamobi/images/
+ToolCaiGameV3/Source/WebTeamobi/download/
+
+# ==========================================
+# 3. Bỏ qua thư mục build biên dịch & log, backup
+# ==========================================
+ToolCaiGameV3/Source/Teamobi2026/build/
+ToolCaiGameV3/Source/Teamobi2026/*.log
+ToolCaiGameV3/Source/Teamobi2026/*.backup
+
+# ==========================================
+# 4. Bỏ qua các file nén dung lượng lớn & video
 # ==========================================
 *.rar
 *.zip
@@ -13,16 +27,9 @@ ToolCaiGameV3/Eff/
 *.mp4
 
 # ==========================================
-# Bỏ qua thư mục build compiled classes & log
-# ==========================================
-ToolCaiGameV3/Source/Teamobi2026/build/
-ToolCaiGameV3/Source/Teamobi2026/*.log
-ToolCaiGameV3/Source/Teamobi2026/*.backup
-
-# ==========================================
-# File hệ điều hành & IDE
+# 5. File hệ thống & IDE tạm thời
 # ==========================================
 .DS_Store
 Thumbs.db
 *.tmp
-
+100MB
