@@ -1,0 +1,28 @@
+# ==========================================
+# Bỏ qua các file cài đặt nặng > 100MB trong Eff (GitHub chặn file > 100MB)
+# ==========================================
+ToolCaiGameV3/Eff/*.exe
+ToolCaiGameV3/Eff/
+
+# ==========================================
+# Bỏ qua các file nén dung lượng lớn & video
+# ==========================================
+*.rar
+*.zip
+*.7z
+*.mp4
+
+# ==========================================
+# Bỏ qua thư mục build compiled classes & log
+# ==========================================
+ToolCaiGameV3/Source/Teamobi2026/build/
+ToolCaiGameV3/Source/Teamobi2026/*.log
+ToolCaiGameV3/Source/Teamobi2026/*.backup
+
+# ==========================================
+# File hệ điều hành & IDE
+# ==========================================
+.DS_Store
+Thumbs.db
+*.tmp
+
