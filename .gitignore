@@ -1,12 +1,12 @@
 # ==========================================
-# 1. Bỏ qua các thư mục client, tool, bộ cài nặng (> 100MB)
+# 1. Bỏ qua các thư mục client, tool ngoài gốc (> 100MB)
 # ==========================================
-ToolCaiGameV3/Eff/
-AWN_Version/
-NROBAKHI/
-NROTOOLS/
-Mod-nro-unity/
-Garp_skin/
+/AWN_Version/
+/NROBAKHI/
+/NROTOOLS/
+/Mod-nro-unity/
+/Garp_skin/
+/ToolCaiGameV3/Eff/
 
 # ==========================================
 # 2. Bỏ qua tài nguyên game tĩnh (chỉ giữ lại LOGIC GAME)
@@ -55,4 +55,4 @@ Thumbs.db
 *.log
 *.backup
 *.bak
-cleanup_admin_accounts.sql
+/cleanup_admin_accounts.sql
