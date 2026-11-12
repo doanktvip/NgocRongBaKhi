@@ -2415,7 +2415,7 @@ public class Service {
         if (plTarget.isPl() && plTarget.maBuHold == null) {
             MaBuHold mabuHold = player.zone.getMaBuHold();
             if (mabuHold != null) {
-                Executors.newSingleThreadExecutor().submit(() -> {
+                Thread.ofVirtual().name("sendMabuEat").start(() -> {
                     int zoneId = player.zone.zoneId;
                     player.zone.setMaBuHold(mabuHold.slot, zoneId, plTarget);
                     sendEffMabuEat(player, plTarget);
@@ -2676,8 +2676,10 @@ public class Service {
             msg.writer().writeByte(stand);
 
             sendMessAllPlayerInMap(pl.zone, msg);
-            ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
-            scheduler.schedule(() -> removeEffectChar(pl, id), times, TimeUnit.MILLISECONDS);
+            Thread.ofVirtual().name("LogicEffect-" + id).start(() -> {
+                nro.models.utils.Functions.sleep(times);
+                removeEffectChar(pl, id);
+            });
         } catch (IOException e) {
             e.printStackTrace();
         }

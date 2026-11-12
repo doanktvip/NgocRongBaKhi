@@ -141,6 +141,93 @@ public class ResultSetImpl implements LocalResultSet {
         return this.data.length;
     }
 
+    private byte toByte(Object val) {
+        if (val == null) {
+            return 0;
+        }
+        if (val instanceof Number num) {
+            return num.byteValue();
+        }
+        return Byte.parseByte(String.valueOf(val).trim());
+    }
+
+    private short toShort(Object val) {
+        if (val == null) {
+            return 0;
+        }
+        if (val instanceof Number num) {
+            return num.shortValue();
+        }
+        return Short.parseShort(String.valueOf(val).trim());
+    }
+
+    private int toInt(Object val) {
+        if (val == null) {
+            return 0;
+        }
+        if (val instanceof Number num) {
+            return num.intValue();
+        }
+        return Integer.parseInt(String.valueOf(val).trim());
+    }
+
+    private long toLong(Object val) {
+        if (val == null) {
+            return 0L;
+        }
+        if (val instanceof Number num) {
+            return num.longValue();
+        }
+        return Long.parseLong(String.valueOf(val).trim());
+    }
+
+    private float toFloat(Object val) {
+        if (val == null) {
+            return 0.0f;
+        }
+        if (val instanceof Number num) {
+            return num.floatValue();
+        }
+        return Float.parseFloat(String.valueOf(val).trim());
+    }
+
+    private double toDouble(Object val) {
+        if (val == null) {
+            return 0.0;
+        }
+        if (val instanceof Number num) {
+            return num.doubleValue();
+        }
+        return Double.parseDouble(String.valueOf(val).trim());
+    }
+
+    private boolean toBoolean(Object val) {
+        if (val == null) {
+            return false;
+        }
+        if (val instanceof Boolean b) {
+            return b;
+        }
+        if (val instanceof Number num) {
+            return num.intValue() == 1;
+        }
+        String s = String.valueOf(val).trim();
+        return "1".equals(s) || "true".equalsIgnoreCase(s);
+    }
+
+    private Timestamp toTimestamp(Object val) {
+        if (val == null) {
+            return null;
+        }
+        if (val instanceof Timestamp ts) {
+            return ts;
+        }
+        if (val instanceof java.util.Date d) {
+            return new Timestamp(d.getTime());
+        }
+        return Timestamp.valueOf(String.valueOf(val).trim());
+    }
+
     @Override
     public byte getByte(final int column) throws Exception {
         if (this.values == null) {
@@ -149,7 +236,7 @@ public class ResultSetImpl implements LocalResultSet {
         if (this.indexData == -1) {
             throw new Exception("Results need to be prepared in advance");
         }
-        return (byte) (int) this.values[this.indexData][column - 1];
+        return toByte(this.values[this.indexData][column - 1]);
     }
 
     @Override
@@ -160,7 +247,7 @@ public class ResultSetImpl implements LocalResultSet {
         if (this.indexData == -1) {
             throw new Exception("Results need to be prepared in advance");
         }
-        return (byte) (int) this.data[this.indexData].get(column.toLowerCase());
+        return toByte(this.data[this.indexData].get(column.toLowerCase()));
     }
 
     @Override
@@ -171,7 +258,7 @@ public class ResultSetImpl implements LocalResultSet {
         if (this.indexData == -1) {
             throw new Exception("Results need to be prepared in advance");
         }
-        return (int) (long) this.values[this.indexData][column - 1];
+        return toInt(this.values[this.indexData][column - 1]);
     }
 
     @Override
@@ -182,7 +269,7 @@ public class ResultSetImpl implements LocalResultSet {
         if (this.indexData == -1) {
             throw new Exception("Results need to be prepared in advance");
         }
-        return (int) this.data[this.indexData].get(column.toLowerCase());
+        return toInt(this.data[this.indexData].get(column.toLowerCase()));
     }
 
     @Override
@@ -193,7 +280,7 @@ public class ResultSetImpl implements LocalResultSet {
         if (this.indexData == -1) {
             throw new Exception("Results need to be prepared in advance");
         }
-        return (float) this.values[this.indexData][column - 1];
+        return toFloat(this.values[this.indexData][column - 1]);
     }
 
     @Override
@@ -204,7 +291,7 @@ public class ResultSetImpl implements LocalResultSet {
         if (this.indexData == -1) {
             throw new Exception("Results need to be prepared in advance");
         }
-        return (float) this.data[this.indexData].get(column.toLowerCase());
+        return toFloat(this.data[this.indexData].get(column.toLowerCase()));
     }
 
     @Override
@@ -215,7 +302,7 @@ public class ResultSetImpl implements LocalResultSet {
         if (this.indexData == -1) {
             throw new Exception("Results need to be prepared in advance");
         }
-        return (double) this.values[this.indexData][column - 1];
+        return toDouble(this.values[this.indexData][column - 1]);
     }
 
     @Override
@@ -226,7 +313,7 @@ public class ResultSetImpl implements LocalResultSet {
         if (this.indexData == -1) {
             throw new Exception("Results need to be prepared in advance");
         }
-        return (double) this.data[this.indexData].get(column.toLowerCase());
+        return toDouble(this.data[this.indexData].get(column.toLowerCase()));
     }
 
     @Override
@@ -237,7 +324,7 @@ public class ResultSetImpl implements LocalResultSet {
         if (this.indexData == -1) {
             throw new Exception("Results need to be prepared in advance");
         }
-        return (long) this.values[this.indexData][column - 1];
+        return toLong(this.values[this.indexData][column - 1]);
     }
 
     @Override
@@ -248,7 +335,7 @@ public class ResultSetImpl implements LocalResultSet {
         if (this.indexData == -1) {
             throw new Exception("Results need to be prepared in advance");
         }
-        return (long) this.data[this.indexData].get(column.toLowerCase());
+        return toLong(this.data[this.indexData].get(column.toLowerCase()));
     }
 
     @Override
@@ -303,11 +390,7 @@ public class ResultSetImpl implements LocalResultSet {
         if (this.indexData == -1) {
             throw new Exception("Results need to be prepared in advance");
         }
-        try {
-            return (int) this.values[this.indexData][column - 1] == 1;
-        } catch (final Exception e) {
-            return (boolean) this.values[this.indexData][column - 1];
-        }
+        return toBoolean(this.values[this.indexData][column - 1]);
     }
 
     @Override
@@ -318,11 +401,7 @@ public class ResultSetImpl implements LocalResultSet {
         if (this.indexData == -1) {
             throw new Exception("Results need to be prepared in advance");
         }
-        try {
-            return (int) this.data[this.indexData].get(column.toLowerCase()) == 1;
-        } catch (final Exception e) {
-            return (boolean) this.data[this.indexData].get(column.toLowerCase());
-        }
+        return toBoolean(this.data[this.indexData].get(column.toLowerCase()));
     }
 
     @Override
@@ -333,7 +412,7 @@ public class ResultSetImpl implements LocalResultSet {
         if (this.indexData == -1) {
             throw new Exception("Results need to be prepared in advance");
         }
-        return (Timestamp) this.values[this.indexData][column - 1];
+        return toTimestamp(this.values[this.indexData][column - 1]);
     }
 
     @Override
@@ -344,7 +423,7 @@ public class ResultSetImpl implements LocalResultSet {
         if (this.indexData == -1) {
             throw new Exception("Results need to be prepared in advance");
         }
-        return (Timestamp) this.data[this.indexData].get(column.toLowerCase());
+        return toTimestamp(this.data[this.indexData].get(column.toLowerCase()));
     }
 
     @Override
@@ -355,7 +434,7 @@ public class ResultSetImpl implements LocalResultSet {
         if (this.indexData == -1) {
             throw new Exception("Results need to be prepared in advance");
         }
-        return (short) (int) this.values[this.indexData][column - 1];
+        return toShort(this.values[this.indexData][column - 1]);
     }
 
     @Override
@@ -366,7 +445,7 @@ public class ResultSetImpl implements LocalResultSet {
         if (this.indexData == -1) {
             throw new Exception("Results need to be prepared in advance");
         }
-        return (short) (int) this.data[this.indexData].get(column.toLowerCase());
+        return toShort(this.data[this.indexData].get(column.toLowerCase()));
     }
 
     @Override

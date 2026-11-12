@@ -208,7 +208,7 @@ public class BanDoKhoBau implements Runnable {
                 }
             }
         }
-        Executors.newSingleThreadExecutor().submit(this, "Bản Đồ Kho Báu: " + this.clan.name);
+        Thread.ofVirtual().name("Bản Đồ Kho Báu: " + this.clan.name).start(this);
     }
 
     public void finish() {

@@ -11,26 +11,33 @@ echo.
 set "JAVAC_CMD="
 set "JAR_CMD="
 
-if exist "C:\Program Files\Java\jdk-21.0.11\bin\javac.exe" (
-    set "JAVAC_CMD=C:\Program Files\Java\jdk-21.0.11\bin\javac.exe"
-    set "JAR_CMD=C:\Program Files\Java\jdk-21.0.11\bin\jar.exe"
-) else if exist "C:\Program Files\Java\latest\bin\javac.exe" (
-    set "JAVAC_CMD=C:\Program Files\Java\latest\bin\javac.exe"
-    set "JAR_CMD=C:\Program Files\Java\latest\bin\jar.exe"
-) else if exist "C:\Program Files\Java\jdk-17\bin\javac.exe" (
-    set "JAVAC_CMD=C:\Program Files\Java\jdk-17\bin\javac.exe"
-    set "JAR_CMD=C:\Program Files\Java\jdk-17\bin\jar.exe"
-) else if defined JAVA_HOME (
-    set "JAVAC_CMD=%JAVA_HOME%\bin\javac.exe"
-    set "JAR_CMD=%JAVA_HOME%\bin\jar.exe"
-) else (
+for /d %%I in ("C:\Program Files\Java\jdk-21*") do (
+    if exist "%%I\bin\javac.exe" (
+        set "JAVAC_CMD=%%I\bin\javac.exe"
+        set "JAR_CMD=%%I\bin\jar.exe"
+    )
+)
+
+if not defined JAVAC_CMD (
+    if exist "C:\Program Files\Java\latest\bin\javac.exe" (
+        set "JAVAC_CMD=C:\Program Files\Java\latest\bin\javac.exe"
+        set "JAR_CMD=C:\Program Files\Java\latest\bin\jar.exe"
+    ) else if defined JAVA_HOME (
+        if exist "%JAVA_HOME%\bin\javac.exe" (
+            set "JAVAC_CMD=%JAVA_HOME%\bin\javac.exe"
+            set "JAR_CMD=%JAVA_HOME%\bin\jar.exe"
+        )
+    )
+)
+
+if not defined JAVAC_CMD (
     where javac >nul 2>&1
     if not errorlevel 1 (
         set "JAVAC_CMD=javac"
         set "JAR_CMD=jar"
     ) else (
-        echo [LOI] Khong tim thay trinh bien dich javac!
-        echo Vui long cai dat JDK hoac them JDK vao bien moi truong PATH.
+        echo [LOI] Khong tim thay trinh bien dich javac JDK 21!
+        echo Vui long cai dat JDK 21 tro len hoac them JDK vao bien moi truong PATH.
         pause
         exit /b 1
     )

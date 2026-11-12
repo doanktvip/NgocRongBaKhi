@@ -159,16 +159,12 @@ public class Zone {
             return;
         }
         try {
-            for (int i = this.items.size() - 1; i >= 0; i--) {
+            for (ItemMap item : this.items) {
                 try {
-                    if (i < this.items.size()) {
-                        ItemMap item = this.items.get(i);
-                        if (item != null && item.itemTemplate != null) {
-                            item.update();
-                        } else {
-                            items.remove(i);
-                            System.err.println("Remove item " + i);
-                        }
+                    if (item != null && item.itemTemplate != null) {
+                        item.update();
+                    } else if (item != null) {
+                        this.items.remove(item);
                     }
                 } catch (Exception e) {
                     Logger.logException(Zone.class, e, "Lỗi item");
@@ -197,7 +193,7 @@ public class Zone {
         this.players = new CopyOnWriteArrayList<>();
         this.bosses = new CopyOnWriteArrayList<>();
         this.pets = new CopyOnWriteArrayList<>();
-        this.mobs = new CopyOnWriteArrayList<>();
+        this.mobs = new ArrayList<>();
         this.items = new CopyOnWriteArrayList<>();
         this.trapMaps = new CopyOnWriteArrayList<>();
         this.maBuHolds = new CopyOnWriteArrayList<>();

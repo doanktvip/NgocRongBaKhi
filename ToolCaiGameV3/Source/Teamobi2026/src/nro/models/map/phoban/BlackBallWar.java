@@ -49,7 +49,7 @@ public class BlackBallWar implements Runnable {
     }
 
     private void start() {
-    Executors.newSingleThreadExecutor().submit(this, "Zone " + zone.zoneId);
+        Thread.ofVirtual().name("Zone " + zone.zoneId).start(this);
     }
 
     @Override

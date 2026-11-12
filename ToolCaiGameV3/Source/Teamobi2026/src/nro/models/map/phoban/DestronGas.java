@@ -191,7 +191,7 @@ public class DestronGas implements Runnable {
                 }
             }
         }
-        Executors.newSingleThreadExecutor().submit(this, "Khí Gas Hủy Diệt: " + this.clan.name);
+        Thread.ofVirtual().name("Khí Gas Hủy Diệt: " + this.clan.name).start(this);
     }
 
     //kết thúc khí gas hủy diệt

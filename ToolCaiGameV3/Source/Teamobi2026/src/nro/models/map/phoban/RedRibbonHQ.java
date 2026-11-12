@@ -206,7 +206,7 @@ public class RedRibbonHQ implements Runnable {
                 }
             }
         }
-        Executors.newSingleThreadExecutor().submit(this, "Doanh Trại: " + this.clan.name);
+        Thread.ofVirtual().name("Doanh Trại: " + this.clan.name).start(this);
     }
 
     public void update() {

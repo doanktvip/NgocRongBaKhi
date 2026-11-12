@@ -144,40 +144,44 @@ public class Logger {
     }
 
     public static void logException(Class<?> clazz, Exception ex, String... log) {
-        try {
-            if (log != null && log.length > 0) {
-                log(PURPLE, log[0] + "\n");
+        synchronized (Logger.class) {
+            try {
+                StringBuilder sb = new StringBuilder();
+                if (log != null && log.length > 0) {
+                    sb.append(PURPLE).append(log[0]).append("\n").append(RESET);
+                }
+
+                String methodName = Thread.currentThread().getStackTrace()[2].getMethodName();
+
+                StringWriter sw = new StringWriter();
+                PrintWriter pw = new PrintWriter(sw);
+                ex.printStackTrace(pw);
+                String exceptionDetails = sw.toString();
+
+                sb.append(YELLOW).append("Error in class: ").append(RESET);
+                sb.append(RED).append(clazz.getName()).append(RESET);
+                sb.append(YELLOW).append(" - in method: ").append(RESET);
+                sb.append(RED).append(methodName).append("\n").append(RESET);
+                sb.append(YELLOW).append("Error details:\n").append(RESET);
+                for (String line : exceptionDetails.split("\n")) {
+                    sb.append(RED).append(line).append("\n").append(RESET);
+                }
+                sb.append(RESET).append("--------------------------------------------------------\n");
+                System.out.print(sb.toString());
+            } catch (Exception e) {
+                System.err.println("Failed to log exception: " + e.getMessage());
             }
-
-            String methodName = Thread.currentThread().getStackTrace()[2].getMethodName();
-
-            StringWriter sw = new StringWriter();
-            PrintWriter pw = new PrintWriter(sw);
-            ex.printStackTrace(pw);
-            String exceptionDetails = sw.toString();
-
-            Logger.warning("Error in class: ");
-            Logger.error(clazz.getName());
-            Logger.warning(" - in method: ");
-            Logger.error(methodName + "\n");
-            Logger.warning("Error details:\n");
-            for (String line : exceptionDetails.split("\n")) {
-                Logger.error(line + "\n");
-            }
-            Logger.log("--------------------------------------------------------\n");
-        } catch (Exception e) {
-            Logger.error("Failed to log exception: " + e.getMessage());
         }
     }
 
     public static void fileLog(String playerName, String string) {
-        Executors.newSingleThreadExecutor().submit(() -> {
+        Thread.ofVirtual().name("fileLog-" + playerName).start(() -> {
             try {
                 SimpleDateFormat formatter = new SimpleDateFormat("dd/MM/yyyy + HH:mm:ss");
                 String timeNow = formatter.format(new Date());
                 String logEntry = timeNow + " + " + string;
                 writeFile("log/" + playerName + "_log.txt", logEntry);
-            } catch (IOException e) {
+            } catch (IOException ignored) {
             }
         });
     }

@@ -196,7 +196,7 @@ public class SnakeWay implements Runnable {
                 }
             }
         }
-        Executors.newSingleThreadExecutor().submit(this, "Con Đường Rắn Độc: " + this.clan.name);
+        Thread.ofVirtual().name("Con Đường Rắn Độc: " + this.clan.name).start(this);
     }
 
     public void finish() {

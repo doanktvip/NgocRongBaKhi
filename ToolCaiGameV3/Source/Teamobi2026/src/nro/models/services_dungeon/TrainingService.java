@@ -151,7 +151,7 @@ public class TrainingService {
                 Service.gI().addSMTN(player, (byte) 2, tnsm, false);
             } else if (player.dangKyTapTuDong && time > 1800) {
                 if (player.inventory.getGem() > 1) {
-                    Executors.newSingleThreadExecutor().submit(() -> {
+                    Thread.ofVirtual().name("AutoTraining-" + player.name).start(() -> {
                         try {
                             player.inventory.subGem(1);
                             Thread.sleep(1000);
@@ -168,7 +168,7 @@ public class TrainingService {
                             Service.gI().sendMoney(player);
                         } catch (InterruptedException e) {
                         }
-                    }, "Luyện Tập");
+                    });
                 } else {
                     player.dangKyTapTuDong = false;
                     Service.gI().sendThongBao(player, "Bạn không đủ ngọc, đăng ký luyện tập tự động đã bị hủy");

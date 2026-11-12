@@ -99,7 +99,7 @@ public class Pet extends Player {
             return;
         }
         goingHome = true;
-        new Thread(() -> {
+        Thread.ofVirtual().name("Pet-GoHome").start(() -> {
             try {
                 Pet.this.status = Pet.ATTACK;
                 Thread.sleep(2000);

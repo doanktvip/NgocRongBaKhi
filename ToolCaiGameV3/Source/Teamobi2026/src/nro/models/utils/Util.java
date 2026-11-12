@@ -396,14 +396,11 @@ public class Util {
     }
 
     public static void threadPool(Runnable task) {
-        ExecutorService executor = Executors.newSingleThreadExecutor();
-        executor.submit(() -> {
+        Thread.ofVirtual().name("Util-ThreadPool").start(() -> {
             try {
                 task.run();
             } catch (Exception e) {
                 Logger.error(e + "\n");
-            } finally {
-                executor.shutdown();
             }
         });
     }
@@ -421,11 +418,11 @@ public class Util {
     }
 
     public static void setTimeout(Runnable runnable, int delay) {
-        Executors.newSingleThreadExecutor().submit(() -> {
+        Thread.ofVirtual().name("Util-Timeout").start(() -> {
             try {
                 Thread.sleep(delay);
                 runnable.run();
-            } catch (InterruptedException e) {
+            } catch (InterruptedException ignored) {
             }
         });
     }
