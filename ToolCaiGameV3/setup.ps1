@@ -6,7 +6,11 @@ $ProgressPreference = 'SilentlyContinue'
 $Root = $PSScriptRoot
 $Eff = Join-Path $Root 'Eff'
 $Source = Join-Path $Root 'Source'
-$GameDir = Join-Path $Root 'Teamobi2026'
+$GameDir = Join-Path $Source 'NroBaKhi'
+if (-not (Test-Path -LiteralPath $GameDir)) {
+    $fallbackDir = Join-Path $Root 'NroBaKhi'
+    if (Test-Path -LiteralPath $fallbackDir) { $GameDir = $fallbackDir }
+}
 $StateDir = Join-Path $Root '.state'
 $LogDir = Join-Path $Root 'Logs'
 $StateFile = Join-Path $StateDir 'setup.json'
@@ -375,7 +379,10 @@ try {
     $chromeInstaller = Join-Path $Eff 'ChromeSetup.exe'
     $nppInstaller = Join-Path $Eff 'npp.8.9.8.Installer.x64.exe'
     $jdkInstaller = Join-Path $Eff 'jdk-21_windows-x64_bin.exe'
-    $gameArchive = Join-Path $Source 'Teamobi2026.rar'
+    $gameArchive = Join-Path $Source 'NroBaKhi.rar'
+    if (-not (Test-Path -LiteralPath $gameArchive)) {
+        $gameArchive = Join-Path $Source 'Teamobi2026.rar'
+    }
     $webArchive = Join-Path $Source 'WebTeamobi.rar'
     @($xamppInstaller,$chromeInstaller,$nppInstaller,$jdkInstaller,$gameArchive,$webArchive) | ForEach-Object { Assert-File $_ }
     Unblock-Safe @($xamppInstaller,$chromeInstaller,$nppInstaller,$jdkInstaller,$gameArchive,$webArchive)
@@ -414,21 +421,29 @@ try {
     # Giai nen game cung luc cac installer dang chay.
     $gameHash = (Get-FileHash -LiteralPath $gameArchive -Algorithm SHA256).Hash
     $gameRun = Join-Path $GameDir 'run.bat'
-    $gameSql = Join-Path $GameDir 'team10.sql'
-    $gameJar = Join-Path $GameDir 'Teamobi2026.jar'
+    $gameSql = Join-Path $GameDir 'nrobakhi.sql'
+    if (-not (Test-Path -LiteralPath $gameSql)) {
+        $legacySql = Join-Path $GameDir 'team10.sql'
+        if (Test-Path -LiteralPath $legacySql) { $gameSql = $legacySql }
+    }
+    $gameJar = Join-Path $GameDir 'NroBaKhi.jar'
+    if (-not (Test-Path -LiteralPath $gameJar)) {
+        $legacyJar = Join-Path $GameDir 'Teamobi2026.jar'
+        if (Test-Path -LiteralPath $legacyJar) { $gameJar = $legacyJar }
+    }
     $gameExtractTask = $null
     if ($State.GameHash -eq $gameHash -and
         (Test-Path -LiteralPath $gameRun -PathType Leaf) -and
         (Test-Path -LiteralPath $gameSql -PathType Leaf) -and
         (Test-Path -LiteralPath $gameJar -PathType Leaf)) {
-        Write-Host 'Teamobi2026 da giai nen - bo qua.' -ForegroundColor Yellow
+        Write-Host 'NroBaKhi da giai nen - bo qua.' -ForegroundColor Yellow
     } else {
         if (Test-Path -LiteralPath $GameDir) {
-            $safeOld = Join-Path $Root ("Teamobi2026_old_" + (Get-Date -Format 'yyyyMMdd_HHmmss'))
+            $safeOld = Join-Path $Root ("NroBaKhi_old_" + (Get-Date -Format 'yyyyMMdd_HHmmss'))
             Move-Item -LiteralPath $GameDir -Destination $safeOld
             Write-Host "Da giu ban cu tai: $safeOld"
         }
-        Write-Host 'Bat dau giai nen Teamobi2026 trong nen...'
+        Write-Host 'Bat dau giai nen NroBaKhi trong nen...'
         $gameExtractTask = Start-RarExtraction $gameArchive $GameDir
     }
 
@@ -445,12 +460,12 @@ try {
     $env:Path = "$javaHome\bin;$env:Path"
     Write-Host "JAVA_HOME = $javaHome" -ForegroundColor Green
 
-    Write-Step 'BUOC 3 - XAC MINH TEAMOBI2026'
+    Write-Step 'BUOC 3 - XAC MINH NROBAKHI'
     if ($gameExtractTask) {
         Complete-RarExtraction $gameExtractTask
         Assert-File $gameRun
         Save-State 'GameHash' $gameHash
-        Write-Host 'Teamobi2026 da giai nen thanh cong.' -ForegroundColor Green
+        Write-Host 'NroBaKhi da giai nen thanh cong.' -ForegroundColor Green
     }
 
     Write-Step 'BUOC 4 - CAI WEB VA DATABASE'
@@ -477,7 +492,11 @@ try {
     Start-Xampp $xamppRoot
     Write-Host 'Apache va MySQL da duoc khoi dong.' -ForegroundColor Green
     Show-XamppControl $xamppRoot
-    $sqlFile = Join-Path $GameDir 'team10.sql'
+    $sqlFile = Join-Path $GameDir 'nrobakhi.sql'
+    if (-not (Test-Path -LiteralPath $sqlFile)) {
+        $legacySql = Join-Path $GameDir 'team10.sql'
+        if (Test-Path -LiteralPath $legacySql) { $sqlFile = $legacySql }
+    }
     Assert-File $sqlFile
     $sqlHash = (Get-FileHash -LiteralPath $sqlFile -Algorithm SHA256).Hash
     $mysql = Join-Path $xamppRoot 'mysql\bin\mysql.exe'
@@ -487,16 +506,16 @@ try {
     if ($dbPassword) { $auth += "--password=$dbPassword" }
     $databaseReady = $State.DatabaseHash -eq $sqlHash
     if ($databaseReady) {
-        $probe = Invoke-MySql $mysql ($auth + @('--batch','--skip-column-names','--execute=SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME=''team10'';'))
-        $databaseReady = $probe.Trim() -eq 'team10'
+        $probe = Invoke-MySql $mysql ($auth + @('--batch','--skip-column-names','--execute=SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME=''nrobakhi'';'))
+        $databaseReady = $probe.Trim() -eq 'nrobakhi'
     }
-    if ($databaseReady) { Write-Host 'Database team10 da import - bo qua.' -ForegroundColor Yellow }
+    if ($databaseReady) { Write-Host 'Database nrobakhi da import - bo qua.' -ForegroundColor Yellow }
     else {
-        Invoke-MySql $mysql ($auth + @('--execute=CREATE DATABASE IF NOT EXISTS `team10` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;'))
+        Invoke-MySql $mysql ($auth + @('--execute=CREATE DATABASE IF NOT EXISTS `nrobakhi` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;'))
         $sqlForMysql = $sqlFile.Replace('\','/')
-        Invoke-MySql $mysql ($auth + @('--default-character-set=utf8mb4','team10',"--execute=source $sqlForMysql"))
+        Invoke-MySql $mysql ($auth + @('--default-character-set=utf8mb4','nrobakhi',"--execute=source $sqlForMysql"))
         Save-State 'DatabaseHash' $sqlHash
-        Write-Host 'Da tao va import database team10.' -ForegroundColor Green
+        Write-Host 'Da tao va import database nrobakhi.' -ForegroundColor Green
     }
 
     Write-Step 'BUOC 5 - CHAY SERVER GAME'
@@ -504,7 +523,7 @@ try {
     Unblock-Safe @($GameDir)
     $gameArguments = Join-NativeArguments @('/d','/c','call', $gameRun)
     Start-Process -FilePath $env:ComSpec -ArgumentList $gameArguments -WorkingDirectory $GameDir
-    Write-Host 'HOAN TAT. Teamobi2026 dang duoc khoi chay.' -ForegroundColor Green
+    Write-Host 'HOAN TAT. NroBaKhi dang duoc khoi chay.' -ForegroundColor Green
     Save-State 'CompletedAt' (Get-Date).ToString('o')
     exit 0
 } catch {

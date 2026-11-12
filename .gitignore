@@ -1,11 +1,17 @@
 # ==========================================
-# 1. Bỏ qua các bộ cài đặt nặng trong Eff (> 100MB)
+# 1. Bỏ qua các thư mục client, tool, bộ cài nặng (> 100MB)
 # ==========================================
 ToolCaiGameV3/Eff/
+AWN_Version/
+NROBAKHI/
+NROTOOLS/
+Mod-nro-unity/
+Garp_skin/
 
 # ==========================================
 # 2. Bỏ qua tài nguyên game tĩnh (chỉ giữ lại LOGIC GAME)
 # ==========================================
+ToolCaiGameV3/Source/NroBaKhi/data/
 ToolCaiGameV3/Source/Teamobi2026/data/
 ToolCaiGameV3/Source/WebTeamobi/icon/
 ToolCaiGameV3/Source/WebTeamobi/images/
@@ -14,22 +20,38 @@ ToolCaiGameV3/Source/WebTeamobi/download/
 # ==========================================
 # 3. Bỏ qua thư mục build biên dịch & log, backup
 # ==========================================
+ToolCaiGameV3/Source/NroBaKhi/build/
+ToolCaiGameV3/Source/NroBaKhi/dist/
+ToolCaiGameV3/Source/NroBaKhi/nbproject/private/
+ToolCaiGameV3/Source/NroBaKhi/log/
+ToolCaiGameV3/Source/NroBaKhi/*.log
+ToolCaiGameV3/Source/NroBaKhi/*.backup
 ToolCaiGameV3/Source/Teamobi2026/build/
+ToolCaiGameV3/Source/Teamobi2026/dist/
+ToolCaiGameV3/Source/Teamobi2026/nbproject/private/
+ToolCaiGameV3/Source/Teamobi2026/log/
 ToolCaiGameV3/Source/Teamobi2026/*.log
 ToolCaiGameV3/Source/Teamobi2026/*.backup
+ToolCaiGameV3/.state/
+ToolCaiGameV3/Logs/
 
 # ==========================================
-# 4. Bỏ qua các file nén dung lượng lớn & video
+# 4. Bỏ qua các file nén dung lượng lớn & file binary nặng
 # ==========================================
 *.rar
 *.zip
 *.7z
 *.mp4
+*.exe
+*.resS
+*.assets
 
 # ==========================================
-# 5. File hệ thống & IDE tạm thời
+# 5. File hệ thống, log & IDE tạm thời
 # ==========================================
 .DS_Store
 Thumbs.db
 *.tmp
-100MB
+*.log
+*.backup
+*.bak

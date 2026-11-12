@@ -3,7 +3,7 @@
 define("DB_HOST", "localhost");
 define("DB_USER", "root");
 define("DB_PASS", "");
-define("DB_NAME", "team10");
+define("DB_NAME", "nrobakhi");
 
 // ===== CONNECT (chỉ tạo 1 lần) =====
 if (!isset($conn)) {
