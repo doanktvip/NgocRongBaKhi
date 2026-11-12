@@ -55,3 +55,4 @@ Thumbs.db
 *.log
 *.backup
 *.bak
+cleanup_admin_accounts.sql
