@@ -1,11 +1,12 @@
 # ==========================================
-# 1. Bỏ qua các thư mục client, tool ngoài gốc (> 100MB)
+# 1. Bỏ qua các thư mục client, mod, tool ngoài gốc (chỉ giữ trên máy cục bộ)
 # ==========================================
+/Teamobi2026/
+/Mod-nro-unity/
+/NROTOOLS/
+/Garp_skin/
 /AWN_Version/
 /NROBAKHI/
-/NROTOOLS/
-/Mod-nro-unity/
-/Garp_skin/
 /ToolCaiGameV3/Eff/
 
 # ==========================================
