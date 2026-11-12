@@ -12,11 +12,11 @@ import nro.models.utils.Logger;
 
 public class AutoMaintenance extends Thread {
 
-    public static boolean AutoMaintenance = false;
+    public static volatile boolean AutoMaintenance = false;
     public static final int hours = 4;
     public static final int mins = 30;
     private static AutoMaintenance instance;
-    public static boolean isRunning;
+    public static volatile boolean isRunning;
     private long lastAnnouncementTime = 0;
     private boolean hasResetAfterMaintenance = false;
 
@@ -32,7 +32,7 @@ public class AutoMaintenance extends Thread {
         boolean hasAnnounced = false;
         long announceStartTime = 0L;
 
-        while (true) {
+        while (!Thread.currentThread().isInterrupted()) {
             try {
                 if (AutoMaintenance) {
                     LocalTime currentTime = LocalTime.now();
@@ -87,7 +87,8 @@ public class AutoMaintenance extends Thread {
 
                 Thread.sleep(1000); // Check mỗi giây
             } catch (InterruptedException e) {
-                e.printStackTrace();
+                Thread.currentThread().interrupt();
+                break;
             }
         }
     }

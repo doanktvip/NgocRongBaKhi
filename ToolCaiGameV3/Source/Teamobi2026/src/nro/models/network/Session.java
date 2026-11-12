@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketException;
+import java.util.concurrent.atomic.AtomicInteger;
 import nro.models.interfaces.IKeySessionHandler;
 import nro.models.interfaces.IMessageHandler;
 import nro.models.interfaces.IMessageSendCollect;
@@ -13,14 +14,14 @@ import nro.models.utils.StringUtil;
 public class Session implements ISession {
 
     private static ISession instance;
-    private static int ID_INIT;
+    private static final AtomicInteger ID_INIT = new AtomicInteger(0);
 
-    private final int id = ID_INIT++;
+    private final int id = ID_INIT.incrementAndGet();
     private final Socket socket;
     private final String ip;
     private byte[] KEYS = "NRO".getBytes();
-    private boolean sentKey;
-    private boolean connected;
+    private volatile boolean sentKey;
+    private volatile boolean connected;
 
     private Sender sender;
     private Collector collector;
@@ -41,8 +42,8 @@ public class Session implements ISession {
         this.connected = true;
 
         try {
-            this.socket.setSendBufferSize(0x100000);
-            this.socket.setReceiveBufferSize(0x100000);
+            this.socket.setSendBufferSize(65536);
+            this.socket.setReceiveBufferSize(65536);
         } catch (SocketException ignored) {
         }
 
@@ -51,8 +52,8 @@ public class Session implements ISession {
         this.sender = new Sender(this, socket);
         this.collector = new Collector(this, socket);
 
-        this.tSender = new Thread(this.sender, "Sender - IP : " + ip);
-        this.tCollector = new Thread(this.collector, "Collector - IP : " + ip);
+        this.tSender = Thread.ofVirtual().name("Sender - IP : " + ip).unstarted(this.sender);
+        this.tCollector = Thread.ofVirtual().name("Collector - IP : " + ip).unstarted(this.collector);
     }
 
     @Override

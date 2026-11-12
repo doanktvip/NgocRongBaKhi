@@ -88,7 +88,7 @@ public class Trade {
         }
     }
 
-    public void addItemTrade(Player pl, byte index, int quantity) {
+    public synchronized void addItemTrade(Player pl, byte index, int quantity) {
         if (pl.getSession().actived) {
             if (index == -1) { // Giao dịch vàng
                 if (quantity > MAX_GOLD_TRADE_PER_TIME || quantity < 0) {
@@ -253,10 +253,14 @@ public class Trade {
         }
     }
 
-    public void cancelTrade() {
+    public synchronized void cancelTrade() {
         String notifiText = "Giao dịch bị hủy bỏ";
-        Service.gI().sendThongBao(player1, notifiText);
-        Service.gI().sendThongBao(player2, notifiText);
+        if (player1 != null) {
+            Service.gI().sendThongBao(player1, notifiText);
+        }
+        if (player2 != null) {
+            Service.gI().sendThongBao(player2, notifiText);
+        }
         closeTab();
         dispose();
     }
@@ -276,11 +280,19 @@ public class Trade {
         }
     }
 
-    public void dispose() {
-        player1.idMark.setPlayerTradeId(-1);
-        player2.idMark.setPlayerTradeId(-1);
-        TransactionService.PLAYER_TRADE.remove(player1);
-        TransactionService.PLAYER_TRADE.remove(player2);
+    public synchronized void dispose() {
+        if (player1 != null) {
+            if (player1.idMark != null) {
+                player1.idMark.setPlayerTradeId(-1);
+            }
+            TransactionService.PLAYER_TRADE.remove(player1);
+        }
+        if (player2 != null) {
+            if (player2.idMark != null) {
+                player2.idMark.setPlayerTradeId(-1);
+            }
+            TransactionService.PLAYER_TRADE.remove(player2);
+        }
         this.player1 = null;
         this.player2 = null;
         this.itemsBag1 = null;
@@ -289,7 +301,7 @@ public class Trade {
         this.itemsTrade2 = null;
     }
 
-    public void lockTran(Player pl) {
+    public synchronized void lockTran(Player pl) {
         Message msg = null;
         try {
             msg = new Message(-86);
@@ -343,7 +355,7 @@ public class Trade {
         }
     }
 
-    public void acceptTrade() {
+    public synchronized void acceptTrade() {
         this.accept++;
         if (this.accept == 2) {
             this.startTrade();

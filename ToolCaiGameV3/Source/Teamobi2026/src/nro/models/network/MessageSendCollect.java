@@ -26,11 +26,11 @@ public class MessageSendCollect implements IMessageSendCollect {
         } else {
             size = dis.readUnsignedShort();
         }
-        byte[] data = new byte[size];
-        int len = 0;
-        for (int byteRead = 0; len != -1 && byteRead < size; byteRead += len) {
-            len = dis.read(data, byteRead, size - byteRead);
+        if (size < 0 || size > 65535) {
+            throw new IOException("Kích thước gói tin không hợp lệ: " + size);
         }
+        byte[] data = new byte[size];
+        dis.readFully(data);
         if (session.sentKey()) {
             for (int i = 0; i < data.length; ++i) {
                 data[i] = this.readKey(session, data[i]);

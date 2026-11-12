@@ -23,6 +23,7 @@ import nro.models.utils.Logger;
 import nro.models.utils.Util;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 import lombok.Getter;
 import lombok.Setter;
 import nro.models.Bot.BotAttackplayer;
@@ -33,7 +34,7 @@ import nro.models.player.Pet;
 public class Zone {
 
     public static final byte PLAYERS_TIEU_CHUAN_TRONG_MAP = 7;
-    public final List<BotAttackplayer> bots = new ArrayList<>();
+    public final List<BotAttackplayer> bots = new CopyOnWriteArrayList<>();
 
     public int countItemAppeaerd = 0;
 
@@ -190,16 +191,16 @@ public class Zone {
         this.map = map;
         this.zoneId = zoneId;
         this.maxPlayer = maxPlayer;
-        this.nonInteractiveNPCs = new ArrayList<>();
-        this.humanoids = new ArrayList<>();
-        this.notBosses = new ArrayList<>();
-        this.players = new ArrayList<>();
-        this.bosses = new ArrayList<>();
-        this.pets = new ArrayList<>();
-        this.mobs = new ArrayList<>();
-        this.items = new ArrayList<>();
-        this.trapMaps = new ArrayList<>();
-        this.maBuHolds = new ArrayList<>();
+        this.nonInteractiveNPCs = new CopyOnWriteArrayList<>();
+        this.humanoids = new CopyOnWriteArrayList<>();
+        this.notBosses = new CopyOnWriteArrayList<>();
+        this.players = new CopyOnWriteArrayList<>();
+        this.bosses = new CopyOnWriteArrayList<>();
+        this.pets = new CopyOnWriteArrayList<>();
+        this.mobs = new CopyOnWriteArrayList<>();
+        this.items = new CopyOnWriteArrayList<>();
+        this.trapMaps = new CopyOnWriteArrayList<>();
+        this.maBuHolds = new CopyOnWriteArrayList<>();
     }
 
     public int getNumOfPlayers() {

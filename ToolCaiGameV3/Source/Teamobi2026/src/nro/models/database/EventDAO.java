@@ -27,18 +27,29 @@ public class EventDAO {
     private static long remainingTimeToIncreaseDame = 0;
 
     public static void loadInternationalWomensDayEvent() {
-        try (Connection con = LocalManager.getConnection();) {
-            PreparedStatement ps = con.prepareStatement("SELECT `data` FROM `event` WHERE `name` = 'international_womens_day'");
-            ResultSet rs = ps.executeQuery();
-            if (rs.first()) {
+        try (Connection con = LocalManager.getConnection();
+             PreparedStatement ps = con.prepareStatement("SELECT `data` FROM `event` WHERE `name` = 'international_womens_day'");
+             ResultSet rs = ps.executeQuery()) {
+            if (rs.next()) {
                 Gson gson = new Gson();
-                JsonObject jsonObject = gson.fromJson(String.valueOf(rs.getString("data")), JsonObject.class);
-                remainingTimeToIncreaseDame = jsonObject.getAsJsonPrimitive("damePrecent").getAsLong();
-                remainingTimeToIncreaseHP = jsonObject.getAsJsonPrimitive("hpPrecent").getAsLong();
-                remainingTimeToIncreaseMP = jsonObject.getAsJsonPrimitive("mpPrecent").getAsLong();
-                remainingTimeToIncreasePotentialAndPower = jsonObject.getAsJsonPrimitive("papPrecent").getAsLong();
+                JsonObject jsonObject = gson.fromJson(rs.getString("data"), JsonObject.class);
+                if (jsonObject != null) {
+                    if (jsonObject.has("damePrecent")) {
+                        remainingTimeToIncreaseDame = jsonObject.getAsJsonPrimitive("damePrecent").getAsLong();
+                    }
+                    if (jsonObject.has("hpPrecent")) {
+                        remainingTimeToIncreaseHP = jsonObject.getAsJsonPrimitive("hpPrecent").getAsLong();
+                    }
+                    if (jsonObject.has("mpPrecent")) {
+                        remainingTimeToIncreaseMP = jsonObject.getAsJsonPrimitive("mpPrecent").getAsLong();
+                    }
+                    if (jsonObject.has("papPrecent")) {
+                        remainingTimeToIncreasePotentialAndPower = jsonObject.getAsJsonPrimitive("papPrecent").getAsLong();
+                    }
+                }
             }
         } catch (Exception ex) {
+            Logger.logException(EventDAO.class, ex);
         }
     }
 
@@ -54,7 +65,7 @@ public class EventDAO {
 
             LocalManager.executeUpdate("UPDATE `event` SET `data` = ? WHERE `name` = 'international_womens_day'", jsonData);
         } catch (Exception e) {
-            Logger.error("Lỗi save Event Data\n");
+            Logger.logException(EventDAO.class, e, "Lỗi save Event Data\n");
         }
 
     }

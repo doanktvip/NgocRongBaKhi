@@ -1,5 +1,6 @@
 package nro.models.server;
 
+import java.lang.management.ManagementFactory;
 import nro.models.services.PlayerService;
 import nro.models.boss.Boss_Manager.BrolyManager;
 import nro.models.consts.ConstNpc;
@@ -62,7 +63,7 @@ public class Command {
                 "|0|Time start: " + ServerManager.timeStart
                 + "\nClients: " + Client.gI().getPlayers().size()
                 + "\n Sessions: " + SessionManager.gI().getNumSession()
-                + "\nThreads: " + Thread.activeCount()
+                + "\nThreads: " + ManagementFactory.getThreadMXBean().getThreadCount()
                 + " luồng" + "\n" + SystemMetrics.ToString(),
                 "Ngọc rồng", "Đệ tử", "Bảo trì", "Tìm kiếm\nngười chơi", "Boss", "Đóng"));
     }
@@ -84,7 +85,7 @@ public class Command {
         parameterizedCommands.put("1", (player, text) -> {
             NpcService.gI().createMenuConMeo(player, 206783, 206783, "|7| Menu bot\n"
                     + "Player online : " + Client.gI().getPlayers().size() + "\n"
-                    + "\b|1|Thread: " + Thread.activeCount() + "\n"
+                    + "\b|1|Thread: " + ManagementFactory.getThreadMXBean().getThreadCount() + "\n"
                     + "\n Sessions: " + SessionManager.gI().getNumSession() + "\n"
                     + "Bot online : " + BotManager.gI().bot.size(),
                     "Bot\nPem Quái", "Bot\nBán Item", "Bot\nSăn Boss", "Bot\nAttack Player");
@@ -255,12 +256,14 @@ parameterizedCommands.put("upp", (player, text) -> {
     public boolean check(Player player, String text) {
         if (player.isAdmin()) {
             if (adminCommands.containsKey(text)) {
+                nro.models.utils.Logger.log(nro.models.utils.Logger.PURPLE, "[AUDIT] Admin " + player.name + " (ID: " + player.id + ") executed: " + text + "\n");
                 adminCommands.get(text).accept(player);
                 return true;
             }
 
             for (Map.Entry<String, BiConsumer<Player, String>> entry : parameterizedCommands.entrySet()) {
                 if (text.startsWith(entry.getKey())) {
+                    nro.models.utils.Logger.log(nro.models.utils.Logger.PURPLE, "[AUDIT] Admin " + player.name + " (ID: " + player.id + ") executed: " + text + "\n");
                     entry.getValue().accept(player, text);
                     return true;
                 }

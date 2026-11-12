@@ -63,11 +63,12 @@ public class Network implements INetwork, Runnable {
             this.port = port;
             this.serverSocketChannel = ServerSocketChannel.open();
             this.serverSocketChannel.configureBlocking(false);
+            this.serverSocketChannel.setOption(java.net.StandardSocketOptions.SO_REUSEADDR, true);
             this.serverSocketChannel.socket().bind(new InetSocketAddress(port));
             this.serverSocketChannel.register(this.selector, 16);
         } catch (IOException ex) {
             Logger.error("Error initializing server at port " + port + "\n");
-            System.exit(0);
+            throw ex;
         }
         this.start = true;
         this.loopServer.start();
@@ -78,10 +79,16 @@ public class Network implements INetwork, Runnable {
     @Override
     public INetwork close() {
         this.start = false;
+        if (this.selector != null) {
+            try {
+                this.selector.close();
+            } catch (IOException ignored) {
+            }
+        }
         if (this.serverSocketChannel != null) {
             try {
                 this.serverSocketChannel.close();
-            } catch (IOException iOException) {
+            } catch (IOException ignored) {
             }
         }
         if (this.serverClose != null) {

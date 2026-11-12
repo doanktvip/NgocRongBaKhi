@@ -93,6 +93,7 @@ import nro.models.network.Message;
 import nro.models.map.service.MapService;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 import nro.models.boss.Baby.Baby;
 import nro.models.boss.Boss_mini.MatTroi;
 import nro.models.boss.cumber.Cumber;
@@ -116,7 +117,7 @@ public class BossManager implements Runnable {
     }
 
     public BossManager() {
-        this.bosses = new ArrayList<>();
+        this.bosses = new CopyOnWriteArrayList<>();
     }
 
     protected final List<Boss> bosses;

@@ -5,6 +5,8 @@ import java.sql.ResultSetMetaData;
 import java.util.HashMap;
 import java.sql.ResultSet;
 import java.util.Map;
+import java.util.List;
+import java.util.ArrayList;
 import nro.models.data.LocalResultSet;
 
 public class ResultSetImpl implements LocalResultSet {
@@ -13,37 +15,44 @@ public class ResultSetImpl implements LocalResultSet {
     private Object[][] values;
     private int indexData;
 
+    @SuppressWarnings("unchecked")
     public ResultSetImpl(final ResultSet rs) throws Exception {
         this.indexData = -1;
         try {
-            rs.last();
-            final int nRow = rs.getRow();
-            rs.beforeFirst();
             final ResultSetMetaData rsmd = rs.getMetaData();
             final int nColumn = rsmd.getColumnCount();
-            this.data = new HashMap[nRow];
-            for (int i = 0; i < this.data.length; ++i) {
-                this.data[i] = new HashMap<>();
-            }
-            this.values = new Object[nRow][nColumn];
-            int index = 0;
+            List<Map<String, Object>> dataList = new ArrayList<>();
+            List<Object[]> valuesList = new ArrayList<>();
+
             while (rs.next()) {
+                Map<String, Object> rowMap = new HashMap<>(nColumn * 2);
+                Object[] rowValues = new Object[nColumn];
                 for (int j = 1; j <= nColumn; ++j) {
                     final String tableName = rsmd.getTableName(j);
                     final String columnName = rsmd.getColumnName(j);
                     final Object columnValue = rs.getObject(j);
-                    this.data[index].put(columnName.toLowerCase(), columnValue);
-                    this.data[index].put(tableName.toLowerCase() + "." + columnName.toLowerCase(), columnValue);
-                    this.values[index][j - 1] = columnValue;
+                    if (columnName != null) {
+                        rowMap.put(columnName.toLowerCase(), columnValue);
+                        if (tableName != null && !tableName.isEmpty()) {
+                            rowMap.put(tableName.toLowerCase() + "." + columnName.toLowerCase(), columnValue);
+                        }
+                    }
+                    rowValues[j - 1] = columnValue;
                 }
-                ++index;
+                dataList.add(rowMap);
+                valuesList.add(rowValues);
             }
+
+            this.data = dataList.toArray(new Map[0]);
+            this.values = valuesList.toArray(new Object[0][]);
         } catch (final Exception e) {
             throw e;
         } finally {
             if (rs != null) {
                 try {
-                    rs.getStatement().close();
+                    if (rs.getStatement() != null) {
+                        rs.getStatement().close();
+                    }
                     rs.close();
                 } catch (final Exception ex) {
                 }
@@ -82,8 +91,11 @@ public class ResultSetImpl implements LocalResultSet {
         if (this.data == null) {
             throw new Exception("No data available");
         }
-        ++this.indexData;
-        return this.indexData == this.data.length - 1;
+        if (this.data.length > 0) {
+            this.indexData = 0;
+            return true;
+        }
+        return false;
     }
 
     @Override

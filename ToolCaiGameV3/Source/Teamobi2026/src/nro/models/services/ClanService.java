@@ -885,18 +885,12 @@ public class ClanService {
     }
 
     private void removeClanPlayer(int plId) {
-        PreparedStatement ps = null;
-        try (Connection con = LocalManager.getConnection();) {
-            ps = con.prepareStatement("update player set clan_id = -1 where id = " + plId);
+        try (Connection con = LocalManager.getConnection();
+             PreparedStatement ps = con.prepareStatement("update player set clan_id = -1 where id = ?")) {
+            ps.setInt(1, plId);
             ps.executeUpdate();
-            ps.close();
         } catch (Exception ex) {
-            removeClanPlayer(plId);
-        } finally {
-            try {
-                ps.close();
-            } catch (Exception e) {
-            }
+            Logger.logException(ClanService.class, ex, "Lỗi xóa thành viên khỏi clan id=" + plId);
         }
     }
 

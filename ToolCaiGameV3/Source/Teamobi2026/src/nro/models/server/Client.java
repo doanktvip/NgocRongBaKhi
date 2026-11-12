@@ -17,9 +17,10 @@ import nro.models.utils.Functions;
 import nro.models.utils.Logger;
 import java.sql.Timestamp;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executors;
 import nro.models.services.shenron.SummonDragonNamek;
 
@@ -33,11 +34,11 @@ public class Client implements Runnable {
 
     private static Client instance;
 
-    private final Map<Long, Player> players_id = new HashMap<>();
-    private final Map<Integer, Player> players_userId = new HashMap<>();
-    private final Map<String, Player> players_name = new HashMap<>();
+    private final Map<Long, Player> players_id = new ConcurrentHashMap<>();
+    private final Map<Integer, Player> players_userId = new ConcurrentHashMap<>();
+    private final Map<String, Player> players_name = new ConcurrentHashMap<>();
     @Getter
-    private final List<Player> players = new ArrayList<>();
+    private final List<Player> players = new CopyOnWriteArrayList<>();
 
     private Client() {
         Executors.newSingleThreadExecutor().submit(this, "Update Client");
@@ -50,20 +51,20 @@ public class Client implements Runnable {
         return instance;
     }
 
-    public void put(Player player) {
-        if (!players_id.containsKey(player.id)) {
-            this.players_id.put(player.id, player);
+    public synchronized void put(Player player) {
+        if (player == null) {
+            return;
         }
-        if (!players_name.containsValue(player)) {
+        this.players_id.put(player.id, player);
+        if (player.name != null) {
             this.players_name.put(player.name, player);
         }
-        if (!players_userId.containsValue(player)) {
+        if (player.getSession() != null) {
             this.players_userId.put(player.getSession().userId, player);
         }
         if (!players.contains(player)) {
             this.players.add(player);
         }
-
     }
 
     private void remove(MySession session) {
@@ -82,10 +83,17 @@ public class Client implements Runnable {
         ServerManager.gI().disconnect(session);
     }
 
-    private void remove(Player player) {
+    private synchronized void remove(Player player) {
+        if (player == null) {
+            return;
+        }
         this.players_id.remove(player.id);
-        this.players_name.remove(player.name);
-        this.players_userId.remove(player.getSession().userId);
+        if (player.name != null) {
+            this.players_name.remove(player.name);
+        }
+        if (player.getSession() != null) {
+            this.players_userId.remove(player.getSession().userId);
+        }
         this.players.remove(player);
         if (!player.beforeDispose) {
             player.beforeDispose = true;
@@ -147,8 +155,7 @@ public class Client implements Runnable {
 
     public void close() {
         Logger.log(Logger.YELLOW, "BEGIN KICK OUT SESSION " + players.size() + "\n");
-        while (!players.isEmpty()) {
-            Player pl = players.remove(0);
+        for (Player pl : players) {
             if (pl != null && pl.getSession() != null) {
                 this.kickSession(pl.getSession());
             }
@@ -174,8 +181,11 @@ public class Client implements Runnable {
     }
 
     public Player getPlayerByID(int playerId) {
-        for (int i = 0; i < players.size(); i++) {
-            Player player = players.get(i);
+        Player p = this.players_id.get((long) playerId);
+        if (p != null) {
+            return p;
+        }
+        for (Player player : players) {
             if (player != null && player.id == playerId) {
                 return player;
             }

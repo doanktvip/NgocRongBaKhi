@@ -71,7 +71,9 @@ public class GiftCodeManager {
                     .append(giftCode.datecreate).append(", Ngày hết hạn: ").append(giftCode.dateexpired)
                     .append("\n");
         }
-        sb.deleteCharAt(sb.length() - 1);
+        if (sb.length() > 0) {
+            sb.deleteCharAt(sb.length() - 1);
+        }
         NpcService.gI().createTutorial(p, 5073, sb.toString());
     }
 

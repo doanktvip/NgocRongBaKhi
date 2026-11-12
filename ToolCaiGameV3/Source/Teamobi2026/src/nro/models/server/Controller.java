@@ -638,7 +638,7 @@ public class Controller implements IMessageHandler {
                     messageSubCommand(_session, _msg);
                     break;
                 case -15: // về nhà
-                    if (player != null) {
+                    if (player != null && player.zone != null && player.zone.map != null) {
                         int mapId = MapService.gI().isMapMaBu(player.zone.map.mapId) ? 114 : player.gender + 21;
                         ChangeMapService.gI().changeMapBySpaceShip(player, mapId, 0, -1);
                     }
@@ -690,7 +690,9 @@ public class Controller implements IMessageHandler {
 //                    short menuid
                     break;
                 case -76:
-                    AchievementService.gI().confirmAchievement(player, _msg.reader().readByte());
+                    if (player != null) {
+                        AchievementService.gI().confirmAchievement(player, _msg.reader().readByte());
+                    }
                     break;
                 default:
                     //Logger.log(Logger.YELLOW, "CMD: " + cmd + "\n");
@@ -812,8 +814,12 @@ public class Controller implements IMessageHandler {
                     default:
                         break;
                 }
-            } catch (IOException e) {
+            } catch (Exception e) {
                 Logger.logException(Controller.class, e);
+            } finally {
+                if (_msg != null) {
+                    _msg.cleanup();
+                }
             }
         }
     }
@@ -840,8 +846,12 @@ public class Controller implements IMessageHandler {
                     default:
                         break;
                 }
-            } catch (IOException e) {
+            } catch (Exception e) {
                 Logger.logException(Controller.class, e);
+            } finally {
+                if (_msg != null) {
+                    _msg.cleanup();
+                }
             }
         }
     }

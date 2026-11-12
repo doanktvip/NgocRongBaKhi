@@ -28,7 +28,7 @@ public final class Sender implements Runnable {
         }
         try {
             this.session = session;
-            this.messages = new LinkedBlockingDeque<Message>();
+            this.messages = new LinkedBlockingDeque<>(2000);
             this.setSocket(socket);
         } catch (Exception exception) {
         }
@@ -48,18 +48,14 @@ public final class Sender implements Runnable {
     @Override
     public void run() {
         try {
-            while (this.session.isConnected()) {
-                while (!this.messages.isEmpty()) {
-                    Message message = this.messages.poll(5L, TimeUnit.SECONDS);
-                    if (message == null) {
-                        continue;
-                    }
-                    this.doSendMessage(message);
-                    message.cleanup();
-                }
-                TimeUnit.MILLISECONDS.sleep(10L);
+            while (this.session != null && this.session.isConnected() && !Thread.currentThread().isInterrupted()) {
+                Message message = this.messages.take();
+                this.doSendMessage(message);
+                message.cleanup();
             }
-        } catch (Exception exception) {
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        } catch (Exception ignored) {
         }
     }
 
@@ -69,8 +65,8 @@ public final class Sender implements Runnable {
 
     public void sendMessage(Message msg) {
         try {
-            if (this.session.isConnected()) {
-                this.messages.add(msg);
+            if (this.session != null && this.session.isConnected() && this.messages != null && msg != null) {
+                this.messages.offer(msg);
             }
         } catch (Exception exception) {
         }

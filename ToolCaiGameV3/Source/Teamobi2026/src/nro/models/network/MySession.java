@@ -19,10 +19,11 @@ import nro.models.utils.TimeUtil;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class MySession extends Session {
 
-    private static final Map<String, AntiLogin> ANTILOGIN = new HashMap<>();
+    private static final Map<String, AntiLogin> ANTILOGIN = new ConcurrentHashMap<>();
     public Player player;
 
     public byte timeWait = 100;
@@ -92,11 +93,7 @@ public class MySession extends Session {
     }
 
     public void login(String username, String password) {
-        AntiLogin al = ANTILOGIN.get(this.ipAddress);
-        if (al == null) {
-            al = new AntiLogin();
-            ANTILOGIN.put(this.ipAddress, al);
-        }
+        AntiLogin al = ANTILOGIN.computeIfAbsent(this.ipAddress, k -> new AntiLogin());
         if (!al.canLogin()) {
             Service.gI().sendThongBaoOK(this, al.getNotifyCannotLogin());
             return;

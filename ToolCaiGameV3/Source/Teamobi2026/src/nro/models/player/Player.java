@@ -427,7 +427,7 @@ public class Player implements Runnable {
     }
 
     public void start() {
-        Executors.newSingleThreadExecutor().submit(this, "Update player " + this.name);
+        Thread.ofVirtual().name("Update player " + this.name).start(this);
     }
 
     public void update() {

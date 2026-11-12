@@ -30,10 +30,6 @@ import com.google.gson.Gson;
 
 public class PlayerDAO {
 
-    private static final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
-
-    ; 
-
     public static boolean createNewPlayer(int userId, String name, byte gender, int hair) {
         try {
             JSONArray dataArray = new JSONArray();
@@ -1063,24 +1059,20 @@ public class PlayerDAO {
     }
 
     public static boolean checkLogout(Connection con, Player player) {
+        if (player == null || player.getSession() == null) {
+            return false;
+        }
         long lastTimeLogout = 0;
         long lastTimeLogin = 0;
-        try {
-            PreparedStatement ps = con.prepareStatement("select * from account where id = ? limit 1");
+        try (PreparedStatement ps = con.prepareStatement("select last_time_logout, last_time_login from account where id = ? limit 1")) {
             ps.setInt(1, player.getSession().userId);
-            ResultSet rs = ps.executeQuery();
-            while (rs.next()) {
-                lastTimeLogout = rs.getTimestamp("last_time_logout").getTime();
-                lastTimeLogin = rs.getTimestamp("last_time_login").getTime();
-            }
-            try {
-                if (rs != null) {
-                    rs.close();
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    java.sql.Timestamp logoutTs = rs.getTimestamp("last_time_logout");
+                    java.sql.Timestamp loginTs = rs.getTimestamp("last_time_login");
+                    lastTimeLogout = logoutTs != null ? logoutTs.getTime() : 0;
+                    lastTimeLogin = loginTs != null ? loginTs.getTime() : 0;
                 }
-                if (ps != null) {
-                    ps.close();
-                }
-            } catch (SQLException ex) {
             }
         } catch (Exception e) {
             return false;
@@ -1089,43 +1081,54 @@ public class PlayerDAO {
     }
 
     public static boolean subvnd(Player player, int num) {
-        PreparedStatement ps = null;
-        try (Connection con = LocalManager.getConnection();) {
-            if (player.getSession().vnd >= num) {
+        if (player == null || player.getSession() == null || num <= 0) {
+            return false;
+        }
+        if (player.getSession().vnd < num) {
+            return false;
+        }
+        try (Connection con = LocalManager.getConnection();
+             PreparedStatement ps = con.prepareStatement("update account set vnd = vnd - ? where id = ? and vnd >= ?")) {
+            ps.setInt(1, num);
+            ps.setInt(2, player.getSession().userId);
+            ps.setInt(3, num);
+            int updated = ps.executeUpdate();
+            if (updated > 0) {
+                player.getSession().vnd -= num;
+                return true;
             } else {
                 return false;
             }
-            ps = con.prepareStatement("update account set vnd = vnd - ? where id = ?");
-            ps.setInt(1, num);
-            ps.setInt(2, player.getSession().userId);
-            ps.executeUpdate();
-            player.getSession().vnd -= num;
-
         } catch (Exception e) {
             Logger.logException(PlayerDAO.class, e, "Lỗi update vnd " + player.name);
             return false;
         }
-        return true;
     }
 
     public static boolean MuaThanhVien(Player player, int num) {
-        PreparedStatement ps = null;
-        try (Connection con = LocalManager.getConnection();) {
-            if (player.getSession().vnd >= num) {
-            } else {
-                return false;
-            }
-            ps = con.prepareStatement("update account set vnd = (vnd - ?), active = ? where id = ?");
+        if (player == null || player.getSession() == null || num <= 0) {
+            return false;
+        }
+        if (player.getSession().vnd < num) {
+            return false;
+        }
+        try (Connection con = LocalManager.getConnection();
+             PreparedStatement ps = con.prepareStatement("update account set vnd = (vnd - ?), active = ? where id = ? and vnd >= ?")) {
             ps.setInt(1, num);
             ps.setInt(2, player.getSession().actived ? 1 : 0);
             ps.setInt(3, player.getSession().userId);
-            ps.executeUpdate();
-            player.getSession().vnd -= num;
+            ps.setInt(4, num);
+            int updated = ps.executeUpdate();
+            if (updated > 0) {
+                player.getSession().vnd -= num;
+                return true;
+            } else {
+                return false;
+            }
         } catch (Exception e) {
             Logger.logException(PlayerDAO.class, e, "Lỗi update mua thành viên " + player.name);
             return false;
         }
-        return true;
     }
 
     public static void LogAddPoint(String name, int id, int point, String type) {

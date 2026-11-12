@@ -1,6 +1,6 @@
 package nro.models.server;
 
-import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicBoolean;
 import nro.models.services.Service;
 import nro.models.utils.Logger;
 
@@ -13,7 +13,8 @@ public class Maintenance extends Thread {
 
     private static Maintenance instance;
     private int timeInSeconds;
-    public static boolean isRunning = false;
+    public static volatile boolean isRunning = false;
+    private final AtomicBoolean isStarted = new AtomicBoolean(false);
 
     private Maintenance() {
     }
@@ -26,23 +27,19 @@ public class Maintenance extends Thread {
     }
 
     public void startCountdown() {
-        if (!isRunning) {
-            isRunning = true;
-            this.timeInSeconds = 60;
-            this.start();
-        }
+        startSeconds(60);
     }
 
     public void startSeconds(int seconds) {
-        if (!isRunning) {
+        if (isStarted.compareAndSet(false, true)) {
             isRunning = true;
             this.timeInSeconds = seconds;
-            this.start();
+            Thread.ofVirtual().name("Maintenance-Thread").start(this);
         }
     }
 
     public void startImmediately() {
-        if (!isRunning) {
+        if (isStarted.compareAndSet(false, true)) {
             isRunning = true;
             Logger.log(Logger.YELLOW, "BẮT ĐẦU BẢO TRÌ NGAY\n");
             ServerManager.gI().close();
@@ -51,7 +48,7 @@ public class Maintenance extends Thread {
 
     @Override
     public void run() {
-        Logger.log(Logger.YELLOW, "Bắt đầu đếm ngược 60s bảo trì");
+        Logger.log(Logger.YELLOW, "Bắt đầu đếm ngược " + timeInSeconds + "s bảo trì");
 
         while (timeInSeconds > 0) {
             try {
@@ -59,7 +56,8 @@ public class Maintenance extends Thread {
                 Thread.sleep(1000);
                 timeInSeconds--;
             } catch (InterruptedException e) {
-                e.printStackTrace();
+                Thread.currentThread().interrupt();
+                break;
             }
         }
 

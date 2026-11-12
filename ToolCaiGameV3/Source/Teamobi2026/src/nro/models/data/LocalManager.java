@@ -57,8 +57,8 @@ public class LocalManager {
 
     private static void loadProperties() {
         Properties properties = new Properties();
-        try {
-            properties.load(new FileInputStream("Config.properties"));
+        try (FileInputStream fis = new FileInputStream("Config.properties")) {
+            properties.load(fis);
             Object value;
             if ((value = properties.get("database.driver")) != null) {
                 LocalManager.DRIVER = String.valueOf(value);
@@ -106,7 +106,7 @@ public class LocalManager {
                     if (LocalManager.LOG_QUERY) {
                         Logger.log(Logger.GREEN, "Thực thi thành công câu lệnh: " + ps.toString() + "\n");
                     }
-                    return new ResultSetImpl(rs) {};
+                    return new ResultSetImpl(rs);
                 }
             } finally {
                 if (con != null) {
@@ -186,7 +186,10 @@ public class LocalManager {
         config.setMinimumIdle(MIN_CONN);
         config.setMaximumPoolSize(MAX_CONN);
         config.setMaxLifetime(MAX_LIFE_TIME);
+        config.setConnectionTimeout(10000);
+        config.setLeakDetectionThreshold(30000);
         config.setPoolName(poolName);
+        config.setIdleTimeout(60000);
         // The bundled Connector/J 5.1 driver can return a closed cached statement
         // after a connection is returned to Hikari's pool.
         config.addDataSourceProperty("cachePrepStmts", "false");

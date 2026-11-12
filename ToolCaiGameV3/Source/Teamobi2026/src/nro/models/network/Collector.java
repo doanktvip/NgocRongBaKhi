@@ -36,11 +36,18 @@ public final class Collector
                 if (msg.command == -27) {
                     this.session.sendKey();
                 } else {
-                    this.messageHandler.onMessage(this.session, msg);
+                    try {
+                        this.messageHandler.onMessage(this.session, msg);
+                    } catch (Throwable t) {
+                        nro.models.utils.Logger.logException(Collector.class, (Exception) (t instanceof Exception ? t : new Exception(t)), "Lỗi onMessage cmd: " + msg.command);
+                    }
                 }
                 msg.cleanup();
             }
+        } catch (java.io.EOFException | java.net.SocketException | java.nio.channels.ClosedChannelException ignored) {
+            // Ngắt kết nối bình thường từ client (tắt game, đóng kết nối)
         } catch (Exception exception) {
+            nro.models.utils.Logger.logException(Collector.class, exception, "Lỗi Collector IP: " + (this.session != null ? this.session.getIP() : "unknown"));
         }
         try {
             Network.gI().getAcceptHandler().sessionDisconnect(this.session);

@@ -48,6 +48,7 @@ import nro.models.services_dungeon.NgocRongNamecService;
 import nro.models.map.service.ItemMapService;
 import nro.models.npc.DuaHauEgg;
 import nro.models.server.Manager;
+import nro.models.server.Maintenance;
 import static nro.models.server.Manager.isTopSukienChanged;
 import nro.models.services.ChatGlobalService;
 import nro.models.task.BadgesTaskService;
@@ -89,11 +90,17 @@ public class UseItem {
     }
 
     public void getItem(MySession session, Message msg) {
+        if (Maintenance.isRunning) {
+            return;
+        }
         Player player = session.player;
         if (player == null) {
             return;
         }
-        TransactionService.gI().cancelTrade(player);
+        if (TransactionService.gI().check(player)) {
+            Service.gI().sendThongBao(player, "Không thể thực hiện khi đang giao dịch");
+            return;
+        }
         try {
             int type = msg.reader().readByte();
             int index = msg.reader().readByte();
@@ -150,7 +157,13 @@ public class UseItem {
     }
 
     public void doItem(Player player, Message _msg) {
-        TransactionService.gI().cancelTrade(player);
+        if (Maintenance.isRunning || player == null) {
+            return;
+        }
+        if (TransactionService.gI().check(player)) {
+            Service.gI().sendThongBao(player, "Không thể thực hiện khi đang giao dịch");
+            return;
+        }
         Message msg = null;
         byte type;
         try {

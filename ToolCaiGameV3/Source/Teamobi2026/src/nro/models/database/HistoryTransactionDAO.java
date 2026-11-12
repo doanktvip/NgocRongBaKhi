@@ -2,6 +2,7 @@ package nro.models.database;
 import nro.models.data.LocalManager;
 import nro.models.item.Item;
 import nro.models.player.Player;
+import nro.models.utils.Logger;
 import nro.models.utils.TimeUtil;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -79,22 +80,18 @@ public class HistoryTransactionDAO {
         try {
             LocalManager.executeUpdate("INSERT INTO history_transaction (player_1, player_2, item_player_1, item_player_2, bag_1_before_tran, bag_2_before_tran, bag_1_after_tran, bag_2_after_tran, time_tran) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", player1, player2, itemPlayer1, itemPlayer2, beforeTran1, beforeTran2, afterTran1, afterTran2, new Timestamp(System.currentTimeMillis()));
         } catch (Exception ex) {
+            Logger.logException(HistoryTransactionDAO.class, ex);
         }
     }
 
     public static void deleteHistory() {
-        PreparedStatement ps = null;
-        try (Connection con = LocalManager.getConnection();) {
-            ps = con.prepareStatement("delete from history_transaction where time_tran < '"
-                    + TimeUtil.getTimeBeforeCurrent(3 * 24 * 60 * 60 * 1000, "yyyy-MM-dd") + "'");
+        String cutoff = TimeUtil.getTimeBeforeCurrent(3 * 24 * 60 * 60 * 1000, "yyyy-MM-dd");
+        try (Connection con = LocalManager.getConnection();
+             PreparedStatement ps = con.prepareStatement("delete from history_transaction where time_tran < ?")) {
+            ps.setString(1, cutoff);
             ps.executeUpdate();
-            ps.close();
         } catch (Exception e) {
-        } finally {
-            try {
-                ps.close();
-            } catch (SQLException ex) {
-            }
+            Logger.logException(HistoryTransactionDAO.class, e);
         }
     }
 

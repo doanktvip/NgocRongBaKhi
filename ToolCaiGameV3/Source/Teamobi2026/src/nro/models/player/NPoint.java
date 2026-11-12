@@ -1990,8 +1990,9 @@ public class NPoint {
         long tiemNangUse;
         if (type == 0) {
             int pointHp = point * 20;
-            tiemNangUse = point * (2 * (this.hpg + 1000) + pointHp - 20) / 2;
-            if ((this.hpg + pointHp) <= getHpMpLimit()) {
+            tiemNangUse = (long) point * (2L * (this.hpg + 1000L) + pointHp - 20L) / 2L;
+            if (tiemNangUse < 0) tiemNangUse = Long.MAX_VALUE;
+            if ((long) this.hpg + pointHp <= getHpMpLimit()) {
                 if (doUseTiemNang(tiemNangUse)) {
                     hpg += pointHp;
                 }
@@ -2002,8 +2003,9 @@ public class NPoint {
         }
         if (type == 1) {
             int pointMp = point * 20;
-            tiemNangUse = point * (2 * (this.mpg + 1000) + pointMp - 20) / 2;
-            if ((this.mpg + pointMp) <= getHpMpLimit()) {
+            tiemNangUse = (long) point * (2L * (this.mpg + 1000L) + pointMp - 20L) / 2L;
+            if (tiemNangUse < 0) tiemNangUse = Long.MAX_VALUE;
+            if ((long) this.mpg + pointMp <= getHpMpLimit()) {
                 if (doUseTiemNang(tiemNangUse)) {
                     mpg += pointMp;
                 }
@@ -2014,8 +2016,9 @@ public class NPoint {
         }
         if (type == 2) {
             TaskService.gI().checkDoneTaskNangCS(player);
-            tiemNangUse = point * (2 * this.dameg + point - 1) / 2 * 100;
-            if ((this.dameg + point) <= getDameLimit()) {
+            tiemNangUse = (long) point * (2L * this.dameg + point - 1L) / 2L * 100L;
+            if (tiemNangUse < 0) tiemNangUse = Long.MAX_VALUE;
+            if ((long) this.dameg + point <= getDameLimit()) {
                 if (doUseTiemNang(tiemNangUse)) {
                     dameg += point;
                 }
@@ -2026,8 +2029,9 @@ public class NPoint {
             }
         }
         if (type == 3) {
-            tiemNangUse = 2 * (this.defg + 5) / 2 * 100000;
-            if ((this.defg + point) <= getDefLimit()) {
+            tiemNangUse = 2L * (this.defg + 5L) / 2L * 100000L;
+            if (tiemNangUse < 0) tiemNangUse = Long.MAX_VALUE;
+            if ((long) this.defg + point <= getDefLimit()) {
                 if (doUseTiemNang(tiemNangUse)) {
                     defg += point;
                 }
@@ -2039,9 +2043,13 @@ public class NPoint {
         if (type == 4) {
             tiemNangUse = 50000000L;
             for (int i = 0; i < this.critg; i++) {
+                if (tiemNangUse > Long.MAX_VALUE / 5L) {
+                    tiemNangUse = Long.MAX_VALUE;
+                    break;
+                }
                 tiemNangUse *= 5L;
             }
-            if ((this.critg + point) <= getCritLimit()) {
+            if ((long) this.critg + point <= getCritLimit()) {
                 if (doUseTiemNang(tiemNangUse)) {
                     critg += point;
                 }

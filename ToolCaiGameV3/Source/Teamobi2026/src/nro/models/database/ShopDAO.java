@@ -106,32 +106,12 @@ public class ShopDAO {
     }
 
     public static List<Shop> getShops(Connection con) {
-        List<Shop> list = new ArrayList<>();
         try {
-            PreparedStatement ps = con.prepareStatement("select * from shop order by npc_id asc");
-            ResultSet rs = ps.executeQuery();
-            while (rs.next()) {
-                Shop shop = new Shop();
-                shop.id = rs.getInt("id");
-                shop.npcId = rs.getByte("npc_id");
-                shop.tagName = rs.getString("tag_name");
-                shop.typeShop = rs.getByte("type_shop");
-                loadShopTab(con, shop);
-                list.add(shop);
-            }
-            try {
-                if (rs != null) {
-                    rs.close();
-                }
-                if (ps != null) {
-                    ps.close();
-                }
-            } catch (SQLException ex) {
-            }
+            return loadShopsStrict(con);
         } catch (Exception e) {
             Logger.logException(ShopDAO.class, e);
+            return new ArrayList<>();
         }
-        return list;
     }
 
     private static void loadShopTab(Connection con, Shop shop) {

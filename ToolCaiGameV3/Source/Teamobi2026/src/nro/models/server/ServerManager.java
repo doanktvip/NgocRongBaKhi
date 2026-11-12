@@ -19,6 +19,7 @@ import nro.models.interfaces.ISession;
 import nro.models.network.Network;
 import nro.models.network.MyKeyHandler;
 import nro.models.network.MySession;
+import nro.models.network.SessionManager;
 import nro.models.services_dungeon.NgocRongNamecService;
 import nro.models.utils.Logger;
 import nro.models.utils.TimeUtil;
@@ -56,7 +57,7 @@ import nro.models.shop_ky_gui.ConsignShopManager;
 public class ServerManager {
 
     public static String timeStart;
-    public static final Map<Object, Object> CLIENTS = new HashMap<>();
+    public static final Map<String, Integer> CLIENTS = new java.util.concurrent.ConcurrentHashMap<>();
     public static String NAME_SERVER = "Ngọc Rồng Onlime";
     public static String DOMAIN = "Server 1";
     public static String NAME = "Ngọc Rồng Online";
@@ -115,9 +116,9 @@ public class ServerManager {
             new Thread(The23rdMartialArtCongressManager.gI(), "Update DHVT23").start();
             new Thread(DeathOrAliveArenaManager.gI(), "Update Võ Đài Sinh Tử").start();
             new Thread(WorldMartialArtsTournamentManager.gI(), "Update WMAT").start();
-            new Thread(AutoMaintenance.gI(), "Update Bảo Trì Tự Động").start();
             AutoMaintenance.AutoMaintenance = true;
             AutoMaintenance.gI().start();
+            SessionManager.gI().startCleanupThread();
             new Thread(ShenronEventManager.gI(), "Update Shenron").start();
 
             BossManager.gI().loadBoss();
@@ -188,7 +189,7 @@ public class ServerManager {
                 Manager.Topsukien1 = Manager.realTop(Manager.queryTopsukien1, con);
             }
             if (Manager.isTopSukien2Changed) {
-                Manager.Topsukien1 = Manager.realTop(Manager.queryTopsukien1, con);
+                Manager.Topsukien2 = Manager.realTop(Manager.queryTopsukien2, con);
             }
             if (Manager.isTopWhisChanged) {
                 Manager.Topwhis = Manager.realTop(Manager.queryTopwhis, con);
@@ -232,51 +233,35 @@ public class ServerManager {
     }
 
     private boolean canConnectWithIp(String ipAddress) {
-        Object o = CLIENTS.get(ipAddress);
-        if (o == null) {
-            CLIENTS.put(ipAddress, 1);
-            return true;
-        } else {
-            int n = Integer.parseInt(String.valueOf(o));
-            if (n < Manager.MAX_PER_IP) {
-                n++;
-                CLIENTS.put(ipAddress, n);
-                return true;
-            } else {
-                return false;
-            }
+        if (ipAddress == null) {
+            return false;
         }
+        int count = CLIENTS.compute(ipAddress, (k, v) -> (v == null) ? 1 : v + 1);
+        if (count > Manager.MAX_PER_IP) {
+            CLIENTS.computeIfPresent(ipAddress, (k, v) -> (v > 1) ? v - 1 : null);
+            return false;
+        }
+        return true;
     }
 
     public void disconnect(MySession session) {
-        Object o = CLIENTS.get(session.getIP());
-        if (o != null) {
-            int n = Integer.parseInt(String.valueOf(o));
-            n--;
-            if (n < 0) {
-                n = 0;
-            }
-            CLIENTS.put(session.getIP(), n);
+        if (session != null && session.getIP() != null) {
+            CLIENTS.computeIfPresent(session.getIP(), (k, v) -> (v > 1) ? v - 1 : null);
         }
     }
 
     public void resetNhanQuaHangNgay() {
-        String url = "jdbc:mysql://localhost:3306/ngocrong";
-        String username = "root";
-        String password = "";
         String resetJson = "[1,1,\"1970-01-01T00:00:00\"]";
 
-        try (Connection conn = DriverManager.getConnection(url, username, password)) {
-            String sql = "UPDATE player SET checkNhanQua = ? WHERE checkNhanQua != ?";
-            PreparedStatement statement = conn.prepareStatement(sql);
-
+        try (Connection conn = LocalManager.getConnection();
+             PreparedStatement statement = conn.prepareStatement("UPDATE player SET checkNhanQua = ? WHERE checkNhanQua != ?")) {
             statement.setString(1, resetJson);
             statement.setString(2, resetJson);
 
             int rowsUpdated = statement.executeUpdate();
             Logger.success("Đã reset nhận quà hằng ngày cho " + rowsUpdated + " người chơi với dữ liệu: " + resetJson);
         } catch (SQLException e) {
-            System.err.println("Lỗi reset nhận quà hằng ngày: " + e.getMessage());
+            Logger.logException(ServerManager.class, e, "Lỗi reset nhận quà hằng ngày: " + e.getMessage());
         }
     }
 

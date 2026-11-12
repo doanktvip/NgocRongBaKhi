@@ -1031,7 +1031,9 @@ public final class Manager {
 
     public void loadProperties() throws IOException {
         Properties properties = new Properties();
-        properties.load(new FileInputStream("Config.properties"));
+        try (FileInputStream fis = new FileInputStream("Config.properties")) {
+            properties.load(fis);
+        }
         Object value;
         if ((value = properties.get("server.sv")) != null) {
             SERVER = Byte.parseByte(String.valueOf(value));
@@ -1084,8 +1086,7 @@ public final class Manager {
      */
     private int[][] readTileIndexTileType(int tileTypeFocus) {
         int[][] tileIndexTileType = null;
-        try {
-            DataInputStream dis = new DataInputStream(new FileInputStream("data/map/tile_set_info"));
+        try (DataInputStream dis = new DataInputStream(new FileInputStream("data/map/tile_set_info"))) {
             int numTileMap = dis.readByte();
             tileIndexTileType = new int[numTileMap][];
             for (int i = 0; i < numTileMap; i++) {

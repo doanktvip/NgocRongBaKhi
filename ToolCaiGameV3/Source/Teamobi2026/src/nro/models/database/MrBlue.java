@@ -60,6 +60,7 @@ public class MrBlue {
     public static Player login(MySession session, AntiLogin al) {
         Player player = null;
         LocalResultSet rs = null;
+        LocalResultSet rsPlayer = null;
         Player plInGame;
         try {
             rs = LocalManager.executeQuery("select * from account where username = ? and password = ?", session.uu, session.pp);
@@ -101,8 +102,8 @@ public class MrBlue {
                     if (secondsPass < Manager.SECOND_WAIT_LOGIN) {
                         Service.gI().sendWaitToLogin(session, Manager.SECOND_WAIT_LOGIN - secondsPass);
                     } else {
-                        rs = LocalManager.executeQuery("select * from player where account_id = ? limit 1", session.userId);
-                        if (!rs.first()) {
+                        rsPlayer = LocalManager.executeQuery("select * from player where account_id = ? limit 1", session.userId);
+                        if (!rsPlayer.first()) {
                             //-28 -4 version data game
                             DataGame.sendVersionGame(session);
                             //-31 data item background
@@ -113,17 +114,18 @@ public class MrBlue {
                             if (plInGame != null) {
                                 Client.gI().kickSession(plInGame.getSession());
                             }
-                            if ((player = loadPlayer(rs, false)) != null) {
+                            if ((player = loadPlayer(rsPlayer, false)) != null) {
                                 player.isPlayer = true;
                                 player.deltaTime = deltaTime;
-                                player.point_sukien = rs.getInt("point_sukien");
-                                player.point_sukien1 = rs.getInt("point_sukien1");
-                                player.point_sukien2 = rs.getInt("point_sukien2");
-                                player.thachdauwhis = rs.getInt("thachdauwhis");
-                                player.point_maydam = rs.getInt("point_maydam");
-                                player.total_damage_maydam = rs.getLong("total_damage_maydam");
+                                player.point_sukien = rsPlayer.getInt("point_sukien");
+                                player.point_sukien1 = rsPlayer.getInt("point_sukien1");
+                                player.point_sukien2 = rsPlayer.getInt("point_sukien2");
+                                player.thachdauwhis = rsPlayer.getInt("thachdauwhis");
+                                player.point_maydam = rsPlayer.getInt("point_maydam");
+                                player.total_damage_maydam = rsPlayer.getLong("total_damage_maydam");
                                 player.isNewMember = !Util.isTimeDifferenceGreaterThanNDays(createTime, 35);
-                                LocalManager.executeUpdate("update account set last_time_login = '" + new Timestamp(System.currentTimeMillis()) + "', ip_address = '" + session.ipAddress + "' where id = " + session.userId);
+                                LocalManager.executeUpdate("update account set last_time_login = ?, ip_address = ? where id = ?",
+                                        new Timestamp(System.currentTimeMillis()), session.ipAddress, session.userId);
                             }
                         }
                     }
@@ -142,6 +144,9 @@ public class MrBlue {
             }
             Logger.logException(MrBlue.class, e);
         } finally {
+            if (rsPlayer != null) {
+                rsPlayer.dispose();
+            }
             if (rs != null) {
                 rs.dispose();
             }
