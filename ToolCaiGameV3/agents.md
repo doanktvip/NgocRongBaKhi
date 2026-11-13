@@ -1,8 +1,11 @@
-# AGENTS.md — Quy Chuẩn Kỹ Thuật & Kiến Trúc Dự Án NgocRongBaKhi
+# AGENTS.md — Quy Chuẩn Kỹ Thuật & Bản Đồ Điều Hướng Dự Án NgocRongBaKhi
 
-Tài liệu này là **Hiến pháp Kỹ thuật (Technical Constitution)** và bộ quản lý ngữ cảnh dành cho cả Lập trình viên và các công cụ AI hỗ trợ lập trình (Cursor, GitHub Copilot, Gemini, Claude) khi làm việc trên dự án **NgocRongBaKhi** (`Source/NroBaKhi` - Java Server & `Source/WebTeamobi` - PHP Web/Admin).
-
-Mục tiêu cốt lõi: Áp dụng chiến lược **Strangler Fig Pattern** (Thay thế dần) và **Quy tắc Hướng đạo sinh (Boy Scout Rule)** — *“Mỗi khi chạm vào một file cũ để thêm tính năng hoặc sửa lỗi, hãy để lại file đó sạch hơn lúc ban đầu”*, tuyệt đối không đập đi xây lại toàn bộ cùng lúc gây đứt gãy hệ thống.
+> **QUY TẮC BẮT BUỘC DÀNH CHO AI AGENT:**
+> 1. **KHÔNG đọc toàn bộ file Java hàng ngàn dòng**: Trước khi đọc bất kỳ file nào, BẮT BUỘC tra cứu [codebase_map.md](file:///d:/NgocRongBaKhi/ToolCaiGameV3/codebase_map.md) để lấy đúng tên class và phạm vi dòng (StartLine .. EndLine).
+> 2. **Tự động định vị từ khóa Game sang File**: Người dùng chỉ cần nói từ khóa tính năng thông thường (rơi đồ, đập đồ, đệ tử, bùa, boss, trade, web), AI tra cứu ngay **Mục 0 trong codebase_map.md** để tìm đúng file đích mà không cần người dùng chỉ định.
+> 3. **Tra cứu hằng số ID**: Tuyệt đối không đọc lại ConstTask.java, ConstItem.java, BossesData.java. BẮT BUỘC tra cứu trực tiếp tại [GAME_CONSTANTS_INDEX.md](file:///d:/NgocRongBaKhi/ToolCaiGameV3/GAME_CONSTANTS_INDEX.md) (chứa 100% đầy đủ 251 option, 150 boss, 158 map, 242 npc, 1225 item).
+> 4. **Mở rộng tính năng**: Tuân theo 5 quy trình chuẩn từng bước trong [WORKFLOW_RECIPES.md](file:///d:/NgocRongBaKhi/ToolCaiGameV3/WORKFLOW_RECIPES.md).
+> 5. **Mạng & Database**: Tra cứu cấu trúc gói tin tại [packet_protocol.md](file:///d:/NgocRongBaKhi/ToolCaiGameV3/packet_protocol.md) và cấu trúc mảng JSON 43 bảng tại [db_json_schema.md](file:///d:/NgocRongBaKhi/ToolCaiGameV3/db_json_schema.md).
 
 ---
 
