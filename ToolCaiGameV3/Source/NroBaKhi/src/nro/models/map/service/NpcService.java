@@ -17,13 +17,15 @@ import nro.models.utils.Logger;
 
 public class NpcService {
 
-    private static NpcService i;
+    private NpcService() {
+    }
+
+    private static final class Holder {
+        private static final NpcService INSTANCE = new NpcService();
+    }
 
     public static NpcService gI() {
-        if (i == null) {
-            i = new NpcService();
-        }
-        return i;
+        return Holder.INSTANCE;
     }
 
     public void createMenuRongThieng(Player player, int indexMenu, String npcSay, String... menuSelect) {

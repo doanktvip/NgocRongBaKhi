@@ -2,7 +2,7 @@
 
 > **CHỈ THỊ TỐI CAO (HARD CONSTRAINTS):**
 > Bạn đang làm việc trên dự án **NgocRongBaKhi** (`ToolCaiGameV3/Source/NroBaKhi` - Java Server và `ToolCaiGameV3/Source/WebTeamobi` - PHP Web/Admin).
-> Mọi hành động của bạn trong mọi lượt (turn) PHẢI tuân thủ nghiêm ngặt **12 Điều Khoản Thực Thi & Chốt Chặn Kỹ Thuật** dưới đây. Không có ngoại lệ.
+> Mọi hành động của bạn trong mọi lượt (turn) PHẢI tuân thủ nghiêm ngặt **20 Điều Khoản Thực Thi & Chốt Chặn Kỹ Thuật Toàn Diện** dưới đây. Không có ngoại lệ.
 
 ---
 
@@ -111,3 +111,75 @@ Bộ cài Client 2D (`.apk`, `.exe`, `.ipa`) đã được đóng gói cố đ�
 1. Mọi thao tác đọc, sửa, ghi file `.java`, `.php`, `.sql`, `.md`, `.properties` bắt buộc phải thực hiện ở chuẩn **UTF-8 (without BOM)**.
 2. Nếu sử dụng script Python, PowerShell hoặc lệnh Shell để hỗ trợ xử lý văn bản, bắt buộc phải khai báo tường minh `encoding="utf-8"` (trong Python) hoặc `[System.Text.Encoding]::UTF8` (trong PowerShell).
 3. Kiểm tra lại các chuỗi thông báo tiếng Việt (`Service.gI().sendThongBao(...)`, lời thoại NPC/Boss, giao diện Web) sau khi sửa để đảm bảo không có bất kỳ ký tự tiếng Việt nào bị lỗi font (Mojibake như `Ã`, `á»`, `ï¿½`).
+
+---
+
+## PHẦN III: 8 QUY TẮC KỸ THUẬT CHUYÊN SÂU CHO SERVER GAME NGỌC RỒNG & WEB ADMIN
+
+### 13. Tự Động Kiểm Tra Biên Dịch Siêu Tốc (Autonomous Compile Verification)
+* Sau bất kỳ lần sửa code Java nào, AI **BẮT BUỘC** phải tự động chạy script kiểm tra biên dịch ngầm:
+  `cmd /c "cd /d ToolCaiGameV3\Source\NroBaKhi && compile_check.bat"`
+* Chỉ được thông báo hoàn thành cho người dùng khi lệnh trên trả về `[COMPILE_SUCCESS]`.
+* Nếu phát sinh lỗi biên dịch (`javac error`, thiếu import, sai tên hàm), phải tự sửa ngay trong phiên làm việc, tuyệt đối không bàn giao code đang lỗi biên dịch.
+
+### 14. Ghi Nhận Bản Vá SQL Vào Sổ Theo Dõi (SQL Migration Tracking Protocol)
+* Bất kỳ tính năng mới nào cần thêm hoặc sửa cấu trúc dữ liệu (`INSERT INTO item_template`, `INSERT INTO item_option_template`, `ALTER TABLE...`, cấu hình Shop, NPC, GiftCode mới), AI **BẮT BUỘC** phải ghi lại câu lệnh SQL vào tệp:
+  `ToolCaiGameV3/SQL_PATCHES.md`
+  kèm ngày giờ, mục đích và lệnh rollback (nếu có).
+* Tuyệt đối không để câu lệnh SQL trôi nổi trong các đoạn chat, đảm bảo khi triển khai lên máy chủ VPS Production chỉ cần chạy file theo dõi này.
+
+### 15. Kiểm Soát Biên & Chống Tràn Số Âm (Integer Overflow & Value Boundary Guard)
+1. **Bảo vệ chỉ số tài nguyên lớn**:
+   * Trong NRO, các chỉ số: Vàng (`gold`), Thỏi vàng, Sức mạnh / Tiềm năng (`power`, `tiemNang`), Máu / Ki / Sát thương (`hp`, `ki`, `dame`) rất dễ vượt qua ngưỡng $2.147.483.647$ (`Integer.MAX_VALUE`).
+   * Khi thực hiện phép cộng dồn (`player.inventory.gold += ...`, `player.nPoint.power += ...`), **BẮT BUỘC** phải kiểm tra giới hạn trần hoặc ép kiểu an toàn:
+     * Vàng: Giới hạn tối đa `Inventory.LIMIT_GOLD` (thường là 2 tỷ vàng). Không bao giờ cho phép cộng dồn vượt trần để tránh bị tràn về số âm (`Negative Gold Bug`).
+     * Tiềm năng / Sức mạnh: Bắt buộc dùng kiểu dữ liệu `long` để tính toán tích lũy.
+2. **Kiểm tra biên dưới (Zero & Positive Guard)**:
+   * Mọi hàm trừ tiền, trừ ngọc, trừ số lượng vật phẩm trong kho phải kiểm tra điều kiện `current >= cost` trước khi trừ. Cấm để số dư bị âm sau khi giao dịch.
+
+### 16. Độc Quyền Bộ Nhớ RAM & An Toàn Thao Tác Web/DB (RAM Precedence & Offline Mutation Guard)
+1. **Cơ chế ghi đè của RAM Server**:
+   * Toàn bộ dữ liệu của người chơi đang trực tuyến (Online) được lưu và xử lý trực tiếp trên RAM của Java Server (`Player` instance).
+   * Khi người chơi chuyển map, đăng xuất hoặc server auto-save, dữ liệu từ RAM sẽ được ghi đè ngược xuống MySQL (`PlayerDAO.updatePlayer`).
+2. **Quy tắc vàng khi can thiệp từ Web PHP / SQL**:
+   * Khi viết tính năng chỉnh sửa dữ liệu người chơi từ Web Admin (`WebTeamobi/admin/player.php`) hoặc script bảo trì: **BẮT BUỘC** phải kiểm tra trạng thái Online của nhân vật (`Client.gI().getPlayerByUser(userId) == null` hoặc query bảng kiểm tra phiên đăng nhập).
+   * **NẾU NHÂN VẬT ĐANG ONLINE**: Cấm chạy lệnh SQL `UPDATE player SET ...` trực tiếp vào MySQL vì sẽ bị RAM Server ghi đè làm mất sạch thay đổi khi người chơi thoát game. Phải thực hiện kick nhân vật ra trước (`Client.gI().kickSession(...)`) hoặc dùng cơ chế nạp tiền/nhận đồ qua bảng trung gian có cơ chế polling (`ShopDAO`, `GiftCodeManager`).
+
+### 17. An Toàn Duyệt Danh Sách Vùng & Chống Crash Vòng Lặp Game (Concurrent Zone Iteration & Memory Guard)
+1. **Chống văng `ConcurrentModificationException` trong Game Loop**:
+   * Trong `Zone.java`, `Map.java`, các danh sách `players`, `mobs`, `items` liên tục có phần tử thêm vào hoặc rút ra khi người chơi vào/ra khu vực hoặc quái hồi sinh/chết.
+   * **CẤM** duyệt trực tiếp bằng cú pháp `for (Player pl : this.players)` hay `for (Mob mob : this.mobs)` mà không có đồng bộ hoặc bản sao.
+   * **BẮT BUỘC** duyệt ngược bằng chỉ số:
+     `for (int i = this.players.size() - 1; i >= 0; i--) { Player pl = this.players.get(i); if (pl == null) continue; ... }`
+     hoặc sử dụng bản copy danh sách trước khi duyệt.
+2. **Dọn dẹp tham chiếu tránh rò rỉ bộ nhớ (Memory Leak Prevention)**:
+   * Khi nhân vật thoát map, Boss bị tiêu diệt, hoặc Pet bị cất đi, bắt buộc phải gọi đầy đủ hàm hủy và gỡ bỏ khỏi Zone (`zone.removePlayer(player)`, `dispose()`). Tránh giữ tham chiếu chết làm JVM phình RAM dẫn đến sập máy chủ vì `OutOfMemoryError`.
+
+### 18. Tính Toàn Vẹn Khởi Tạo Vật Phẩm & Option Template (Item & Option Integrity Contract)
+1. **Khởi tạo danh sách thuộc tính không Null**:
+   * Khi sinh vật phẩm mới qua code (`ItemService.gI().createNewItem(...)`, rơi đồ từ Boss, quà tặng sự kiện), danh sách `item.itemOptions` **TUYỆT ĐỐI KHÔNG ĐƯỢC ĐỂ NULL** (phải khởi tạo `new ArrayList<>()` nếu vật phẩm trắng option).
+2. **Bảo toàn các Option cốt lõi của game**:
+   * Phải tra cứu ID chính xác trong `GAME_CONSTANTS_INDEX.md` trước khi gắn option:
+     * Option `93`: Hạn sử dụng (giá trị là số ngày).
+     * Option `73`: Hạn sử dụng (giá trị là số giờ).
+     * Option `30`: Không thể giao dịch.
+     * Option `86`: Giao dịch sau X ngày.
+     * Option `107` / `102`: Sao pha lê / Nâng cấp sao.
+   * Tuyệt đối không tự ý gắn option ID rác hoặc giá trị phi lý làm hỏng hiển thị tooltip của Client.
+
+### 19. Tính Bất Khả Xâm Phạm Của Giao Dịch & Chống Bug Dup (Transaction Atomicity & Anti-Dup)
+1. **Nguyên lý Nguyên tử trong chuyển giao tài sản (Atomicity)**:
+   * Trong mọi luồng giao dịch giữa 2 người chơi (`Trade`), mua bán ký gửi (`ConsignShopService`), rút tiền hoặc chuyển đồ vào rương:
+     * **Chỉ được trừ đồ/tiền của bên gửi khi bên nhận đã nhận thành công 100%**.
+     * Nếu xảy ra bất kỳ lỗi mạng, ngắt kết nối, đầy hòm đồ, hoặc một bên hủy giao dịch, toàn bộ tài sản phải được hoàn trả nguyên trạng về túi của người sở hữu ban đầu.
+2. **Khóa đồng bộ và kiểm tra trạng thái**:
+   * Mọi method xử lý giao dịch phải được bọc trong khối `synchronized` trên chính thực thể (`Player`, `Item`, `ConsignItem`).
+   * Trước khi thực hiện chuyển giao, bắt buộc kiểm tra điều kiện an toàn: `!player.isDie()`, `player.zone != null`, `player.getSession() != null`, và `!player.baovetaikhoan`. Cấm thực hiện đồng thời 2 giao dịch trên cùng một tài khoản (`player.isTrading == false`).
+
+### 20. Tách Biệt Cấu Hình & Cấm Tuyệt Đối Hardcode (Zero-Hardcode Configuration)
+1. **Không hardcode thông tin nhạy cảm và môi trường**:
+   * Tuyệt đối cấm viết cứng địa chỉ IP (`127.0.0.1`, IP VPS), cổng mạng (Port `14445`), tên tài khoản và mật khẩu cơ sở dữ liệu MySQL / MongoDB trong các file `.java` hoặc `.php`.
+2. **Nạp cấu hình qua file chuẩn**:
+   * Toàn bộ cấu hình của Java Server phải được nạp từ file `ToolCaiGameV3/Source/NroBaKhi/Config.properties` thông qua lớp `Manager.java`.
+   * Toàn bộ cấu hình của Web PHP phải được khai báo trong `ToolCaiGameV3/Source/WebTeamobi/config.php`.
+   * Cấm để lại tài khoản test hoặc mật khẩu mặc định trong code triển khai (như tài khoản admin gán cứng đã từng phát hiện trong `admin/account.php`).

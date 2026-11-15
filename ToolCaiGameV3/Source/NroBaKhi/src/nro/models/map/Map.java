@@ -55,9 +55,12 @@ public class Map implements Runnable {
     public static final byte T_EMPTY = 0;
     public static final byte T_TOP = 2;
     private static final int SIZE = 24;
-    private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
+    private static final ScheduledExecutorService MAP_SCHEDULER = Executors.newScheduledThreadPool(Math.max(4, Runtime.getRuntime().availableProcessors()));
     public final List<BotAttackplayer> bots = new ArrayList<>();
     public List<Player> players = new ArrayList<>();
+
+    public byte[] bgItemData = new byte[0];
+    public byte[] effMapData = new byte[0];
 
     public int mapId;
     public String mapName;
@@ -106,12 +109,12 @@ public class Map implements Runnable {
         this.zones = new ArrayList<>();
         this.wayPoints = wayPoints;
         this.npcs = new ArrayList<>();
-        try {
+        if (tileMap != null && tileMap.length > 0 && tileMap[0] != null) {
             this.mapHeight = tileMap.length * SIZE;
             this.mapWidth = tileMap[0].length * SIZE;
-        } catch (Exception ignored) {
         }
         this.readTileMap(mapId);
+        this.loadStaticMapAssets(mapId);
         this.initZone(zones, maxPlayer);
         this.initItem();
         this.initTrapMap();
@@ -183,7 +186,7 @@ public class Map implements Runnable {
     }
 
     public void run() {
-        scheduler.scheduleAtFixedRate(() -> {
+        MAP_SCHEDULER.scheduleAtFixedRate(() -> {
             try {
                 for (Zone zone : this.zones) {
                     zone.update();
@@ -191,7 +194,26 @@ public class Map implements Runnable {
             } catch (Exception e) {
                 Logger.logException(Map.class, e, "Lỗi update map " + this.mapName);
             }
-        }, 0, 5000, TimeUnit.MILLISECONDS);  // Cập nhật mỗi 1 giây
+        }, 0, 1000, TimeUnit.MILLISECONDS);
+    }
+
+    public void loadStaticMapAssets(int mapId) {
+        try {
+            byte[] bg = nro.models.utils.FileIO.readFile("data/map/item_bg_map_data/" + mapId);
+            if (bg != null) {
+                this.bgItemData = bg;
+            }
+        } catch (Exception e) {
+            Logger.logException(Map.class, e, "Lỗi nạp item_bg_map_data map " + mapId);
+        }
+        try {
+            byte[] eff = nro.models.utils.FileIO.readFile("data/map/eff_map/" + mapId);
+            if (eff != null) {
+                this.effMapData = eff;
+            }
+        } catch (Exception e) {
+            Logger.logException(Map.class, e, "Lỗi nạp eff_map map " + mapId);
+        }
     }
 
     public void initMob(byte[] mobTemp, byte[] mobLevel, int[] mobHp, short[] mobX, short[] mobY) {
@@ -393,7 +415,7 @@ public class Map implements Runnable {
             }
             return rY;
         } catch (Exception e) {
-            e.printStackTrace();
+            Logger.logException(Map.class, e);
             return y;
         }
     }
@@ -420,9 +442,12 @@ public class Map implements Runnable {
 
     public boolean tileTypeAt(int x, int y, int type) {
         try {
-            return (types[y / 24 * tmw + x / 24] & type) == type;
+            int index = (y / 24) * tmw + (x / 24);
+            if (types != null && index >= 0 && index < types.length) {
+                return (types[index] & type) == type;
+            }
+            return false;
         } catch (Exception e) {
-            e.printStackTrace();
             return false;
         }
     }
@@ -472,20 +497,23 @@ public class Map implements Runnable {
     }
 
     public final void readTileMap(int mapId) {
-        try {
-            try (DataInputStream dis = new DataInputStream(new FileInputStream("data/map/tile_map_data/" + mapId))) {
-                dis.readByte();
-                tmw = dis.readByte();
-                tmh = dis.readByte();
-                pxw = tmw * SIZE;
-                pxh = tmh * SIZE;
-                maps = new int[tmw * tmh];
-                for (int j = 0; j < maps.length; j++) {
-                    maps[j] = dis.readByte();
-                }
-                types = new int[maps.length];
+        java.io.File file = new java.io.File("data/map/tile_map_data/" + mapId);
+        if (!file.exists()) {
+            return;
+        }
+        try (DataInputStream dis = new DataInputStream(new FileInputStream(file))) {
+            dis.readByte();
+            tmw = dis.readByte();
+            tmh = dis.readByte();
+            pxw = tmw * SIZE;
+            pxh = tmh * SIZE;
+            maps = new int[tmw * tmh];
+            for (int j = 0; j < maps.length; j++) {
+                maps[j] = dis.readByte();
             }
+            types = new int[maps.length];
         } catch (IOException e) {
+            Logger.logException(Map.class, e, "Lỗi đọc tile_map_data: " + mapId);
         }
     }
 

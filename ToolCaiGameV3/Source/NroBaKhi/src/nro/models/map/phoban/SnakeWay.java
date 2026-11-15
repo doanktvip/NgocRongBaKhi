@@ -17,26 +17,19 @@ import nro.models.map.service.ChangeMapService;
 import nro.models.utils.Util;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.Executors;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import nro.models.server.Maintenance;
 import nro.models.map.service.ItemMapService;
 import nro.models.utils.TimeUtil;
 
 @Data
-public class SnakeWay implements Runnable {
+@EqualsAndHashCode(callSuper = false)
+public class SnakeWay extends AbstractClanDungeon {
 
     public static final long POWER_CAN_GO_TO_CDRD = 2000000000;
     public static final int AVAILABLE = 50;
     public static final int TIME_CON_DUONG_RAN_DOC = 1800000;
-
-    public int id;
-    public byte level;
-    public final List<Zone> zones;
-
-    public Clan clan;
-    public boolean isOpened;
-    private long lastTimeOpen;
     private long lastTimeUpdateMessage;
     private boolean kickoutcdrd;
     private long timeKickOutCDRD;
@@ -44,13 +37,8 @@ public class SnakeWay implements Runnable {
     public boolean endCDRD;
     public boolean allMobsDead;
 
-    public void addZone(Zone zone) {
-        this.zones.add(zone);
-    }
-
     public SnakeWay(int id) {
         this.id = id;
-        this.zones = new ArrayList<>();
     }
 
     @Override
@@ -216,15 +204,6 @@ public class SnakeWay implements Runnable {
         if (MapService.gI().isMapConDuongRanDoc(player.zone.map.mapId)) {
             ChangeMapService.gI().changeMapBySpaceShip(player, 5, -1, 1038);
         }
-    }
-
-    public Zone getMapById(int mapId) {
-        for (Zone zone : this.zones) {
-            if (zone.map.mapId == mapId) {
-                return zone;
-            }
-        }
-        return null;
     }
 
     private void sendTextConDuongRanDoc() {

@@ -93,10 +93,10 @@ Tài liệu này là **Chỉ mục định vị nhanh (Zero-Search Codebase Inde
 ---
 
 ### 1.4. Tầng Bản Đồ, Phó Bản, Quái Vật, NPC & Boss (`map`, `mob`, `npc`, `boss`, `matches`, `Bot`)
-* **`nro.models.map` (6 files, 1.631 dòng)**, **`map.phoban` (6 files, 1.484 dòng)**, **`map.service` (5 files, 2.011 dòng)** & **`services_dungeon` (10 files, 1.507 dòng)**:
-  * `Zone.java` (868 dòng) & `Map.java` (492 dòng): Quản lý thực thể trong từng khu vực, nhặt vật phẩm (`Zone.pickItem` `L322`), đồng bộ thông tin khu vực (`Zone.mapInfo` `L612`).
-  * `ChangeMapService.java` (1.140 dòng) & `MapService.java` (629 dòng): Chuyển bản đồ, kiểm tra điều kiện vào map đặc biệt (`checkMapCanJoin` `L875`).
-  * 6 Phó bản trong `map.phoban`: `RedRibbonHQ.java` (Doanh trại Độc Nhãn - 436 dòng), `BanDoKhoBau.java` (272 dòng), `SnakeWay.java` (Con đường rắn độc - 269 dòng), `DestronGas.java` (Khí gas hủy diệt - 259 dòng), `BlackBallWar.java` (Ngọc rồng sao đen - 148 dòng), `MajinBuu14H.java` (100 dòng).
+* **`nro.models.map` (6 files, 1.631 dòng)**, **`map.phoban` (7 files, 1.550 dòng)**, **`map.service` (5 files, 1.880 dòng)** & **`services_dungeon` (10 files, 1.507 dòng)**:
+  * `Zone.java` (870 dòng) & `Map.java` (510 dòng): Quản lý thực thể trong từng khu vực, nhặt vật phẩm (`Zone.pickItem` `L322`), đồng bộ thông tin khu vực (`Zone.mapInfo` `L612`).
+  * `ChangeMapService.java` (1.140 dòng) & `MapService.java` (500 dòng): Chuyển bản đồ, kiểm tra điều kiện vào map đặc biệt (`checkMapCanJoin` `L875`).
+  * 7 file trong `map.phoban`: `AbstractClanDungeon.java` (Lớp cha trừu tượng quản lý chung 4 phó bản), `RedRibbonHQ.java` (Doanh trại Độc Nhãn), `BanDoKhoBau.java` (Bản đồ kho báu), `SnakeWay.java` (Con đường rắn độc), `DestronGas.java` (Khí gas hủy diệt), `BlackBallWar.java` (Ngọc rồng sao đen), `MajinBuu14H.java` (Ma Bư 14h).
 * **`nro.models.npc` (8 files, 1.736 dòng)** & **`nro.models.npc_list` (59 files, 6.676 dòng)**:
   * `NpcFactory.java` (750 dòng): Khởi tạo 59 NPC trong `npc_list/` (lớn nhất: `QuyLaoKame.java` 585 dòng, `BaHatMit.java` 457 dòng, `LyTieuNuong.java` 391 dòng, `ToriBot.java` 371 dòng, `Osin.java` 292 dòng, `Whis.java` 262 dòng) và xử lý menu `ConMeo` (`L318`), `RongThieng` (`L257`).
 * **`nro.models.boss` (31 sub-packages, ~140 files, ~17.500 dòng)**:

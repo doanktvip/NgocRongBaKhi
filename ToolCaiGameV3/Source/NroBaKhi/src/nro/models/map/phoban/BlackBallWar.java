@@ -6,6 +6,7 @@ import nro.models.utils.Functions;
 import nro.models.database.MrBlue;
 import nro.models.database.PlayerDAO;
 import java.util.List;
+import java.util.ArrayList;
 import java.util.concurrent.Executors;
 import nro.models.player.Player;
 import nro.models.map.service.MapService;
@@ -13,6 +14,7 @@ import nro.models.services.Service;
 import nro.models.map.service.ChangeMapService;
 import nro.models.utils.TimeUtil;
 import nro.models.utils.Util;
+import nro.models.utils.Logger;
 
 import lombok.Data;
 import nro.models.map.Zone;
@@ -111,18 +113,30 @@ public class BlackBallWar implements Runnable {
                 + "dành được Ngọc rồng " + star + " sao đen cho bang");
 
         if (player.clan != null) {
-            player.clan.members.forEach(m -> {
+            List<Integer> offlineMemberIds = new ArrayList<>();
+            for (var m : player.clan.members) {
                 Player p = Client.gI().getPlayer(m.id);
                 if (p != null) {
                     p.rewardBlackBall.reward((byte) star);
                 } else {
-                    Player pFromDb = MrBlue.loadById(m.id);
-                    if (pFromDb != null) {
-                        pFromDb.rewardBlackBall.reward((byte) star);
-                        PlayerDAO.updatePlayer(pFromDb);
-                    }
+                    offlineMemberIds.add(m.id);
                 }
-            });
+            }
+            if (!offlineMemberIds.isEmpty()) {
+                Thread.ofVirtual().name("BlackBall-OfflineReward-Clan-" + player.clan.id).start(() -> {
+                    for (int memberId : offlineMemberIds) {
+                        try {
+                            Player pFromDb = MrBlue.loadById(memberId);
+                            if (pFromDb != null) {
+                                pFromDb.rewardBlackBall.reward((byte) star);
+                                PlayerDAO.updatePlayer(pFromDb);
+                            }
+                        } catch (Exception e) {
+                            Logger.logException(BlackBallWar.class, e, "Lỗi trao thưởng NRĐ offline ID: " + memberId);
+                        }
+                    }
+                });
+            }
         }
 
         kickAllPlayersOutOfMap(player.zone);

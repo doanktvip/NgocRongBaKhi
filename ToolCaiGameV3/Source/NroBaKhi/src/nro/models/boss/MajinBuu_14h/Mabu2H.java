@@ -31,7 +31,6 @@ public class Mabu2H extends Boss {
             return;
         }
         super.reward(plKill);
-        BadgesTaskService.updateCountBagesTask(plKill, ConstTaskBadges.TRUM_SAN_BOSS, 1);
         this.rewardEventPoint(plKill, 5);
 
         // Rơi duy nhất đúng 1 món theo bảng tỉ lệ phân tầng (1% Thần Linh, 5% Đồ Sao, 94% Ngọc Rồng)

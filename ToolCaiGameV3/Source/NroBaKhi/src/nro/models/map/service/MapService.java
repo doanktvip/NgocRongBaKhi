@@ -18,13 +18,15 @@ import java.util.List;
 
 public class MapService {
 
-    private static MapService i;
+    private MapService() {
+    }
+
+    private static final class Holder {
+        private static final MapService INSTANCE = new MapService();
+    }
 
     public static MapService gI() {
-        if (i == null) {
-            i = new MapService();
-        }
-        return i;
+        return Holder.INSTANCE;
     }
 
     public WayPoint getWaypointPlayerIn(Player player) {
@@ -125,159 +127,19 @@ public class MapService {
         }
 
         if (this.isMapDoanhTrai(mapId) && player.clan != null && player.clan.doanhTrai != null) {
-            if (this.isMapDoanhTrai(player.zone.map.mapId)) {
-                boolean allCharactersDead = true;
-
-                for (Mob mob : player.clan.doanhTrai.getMapById(mapId).mobs) {
-                    if (!mob.isDie()) {
-                        allCharactersDead = false;
-                        break;
-                    }
-                }
-
-                if (allCharactersDead) {
-                    for (Player boss : player.clan.doanhTrai.getMapById(mapId).getBosses()) {
-                        if (!boss.isDie()) {
-                            allCharactersDead = false;
-                            break;
-                        }
-                    }
-                }
-
-                if (allCharactersDead) {
-                    return player.clan.doanhTrai.getMapById(mapId);
-                }
-
-                for (Mob mob : player.zone.mobs) {
-                    if (!mob.isDie()) {
-                        return null;
-                    }
-                }
-
-                for (Player boss : player.zone.getBosses()) {
-                    if (!boss.isDie()) {
-                        return null;
-                    }
-                }
-            }
-            return player.clan.doanhTrai.getMapById(mapId);
+            return resolveDungeonTransition(player, player.clan.doanhTrai.getMapById(mapId), this.isMapDoanhTrai(player.zone.map.mapId));
         }
 
         if (this.isMapBanDoKhoBau(mapId) && player.clan != null && player.clan.BanDoKhoBau != null) {
-            if (this.isMapBanDoKhoBau(player.zone.map.mapId)) {
-                boolean allCharactersDead = true;
-
-                for (Mob mob : player.clan.BanDoKhoBau.getMapById(mapId).mobs) {
-                    if (!mob.isDie()) {
-                        allCharactersDead = false;
-                        break;
-                    }
-                }
-
-                if (allCharactersDead) {
-                    for (Player boss : player.clan.BanDoKhoBau.getMapById(mapId).getBosses()) {
-                        if (!boss.isDie()) {
-                            allCharactersDead = false;
-                            break;
-                        }
-                    }
-                }
-
-                if (allCharactersDead) {
-                    return player.clan.BanDoKhoBau.getMapById(mapId);
-                }
-
-                for (Mob mob : player.zone.mobs) {
-                    if (!mob.isDie()) {
-                        return null;
-                    }
-                }
-
-                for (Player boss : player.zone.getBosses()) {
-                    if (!boss.isDie()) {
-                        return null;
-                    }
-                }
-            }
-            return player.clan.BanDoKhoBau.getMapById(mapId);
+            return resolveDungeonTransition(player, player.clan.BanDoKhoBau.getMapById(mapId), this.isMapBanDoKhoBau(player.zone.map.mapId));
         }
 
         if (this.isMapKhiGasHuyDiet(mapId) && player.clan != null && player.clan.KhiGasHuyDiet != null) {
-            if (this.isMapKhiGasHuyDiet(player.zone.map.mapId)) {
-                boolean allCharactersDead = true;
-
-                for (Mob mob : player.clan.KhiGasHuyDiet.getMapById(mapId).mobs) {
-                    if (!mob.isDie()) {
-                        allCharactersDead = false;
-                        break;
-                    }
-                }
-
-                if (allCharactersDead) {
-                    for (Player boss : player.clan.KhiGasHuyDiet.getMapById(mapId).getBosses()) {
-                        if (!boss.isDie()) {
-                            allCharactersDead = false;
-                            break;
-                        }
-                    }
-                }
-
-                if (allCharactersDead) {
-                    return player.clan.KhiGasHuyDiet.getMapById(mapId);
-                }
-
-                for (Mob mob : player.zone.mobs) {
-                    if (!mob.isDie()) {
-                        return null;
-                    }
-                }
-
-                for (Player boss : player.zone.getBosses()) {
-                    if (!boss.isDie()) {
-                        return null;
-                    }
-                }
-            }
-            return player.clan.KhiGasHuyDiet.getMapById(mapId);
+            return resolveDungeonTransition(player, player.clan.KhiGasHuyDiet.getMapById(mapId), this.isMapKhiGasHuyDiet(player.zone.map.mapId));
         }
 
         if (this.isMapConDuongRanDoc(mapId) && player.clan != null && player.clan.ConDuongRanDoc != null) {
-            if (this.isMapConDuongRanDoc(player.zone.map.mapId)) {
-                boolean allCharactersDead = true;
-
-                for (Mob mob : player.clan.ConDuongRanDoc.getMapById(mapId).mobs) {
-                    if (!mob.isDie()) {
-                        allCharactersDead = false;
-                        break;
-                    }
-                }
-
-                if (allCharactersDead) {
-                    for (Player boss : player.clan.ConDuongRanDoc.getMapById(mapId).getBosses()) {
-                        if (!boss.isDie()) {
-                            allCharactersDead = false;
-                            break;
-                        }
-                    }
-                }
-
-                if (allCharactersDead) {
-                    return player.clan.ConDuongRanDoc.getMapById(mapId);
-                }
-
-                for (Mob mob : player.zone.mobs) {
-                    if (!mob.isDie()) {
-                        return null;
-                    }
-                }
-
-                for (Player boss : player.zone.getBosses()) {
-                    if (!boss.isDie()) {
-                        return null;
-                    }
-                }
-            }
-            return player.clan.ConDuongRanDoc.getMapById(mapId);
+            return resolveDungeonTransition(player, player.clan.ConDuongRanDoc.getMapById(mapId), this.isMapConDuongRanDoc(player.zone.map.mapId));
         }
 
         //**********************************************************************
@@ -287,24 +149,64 @@ public class MapService {
             return getZoneByMapIDAndZoneID(mapId, zoneId);
         }
     }
-    
+
+    private boolean isZoneCleared(Zone zone) {
+        if (zone == null) {
+            return false;
+        }
+        if (zone.mobs != null) {
+            for (Mob mob : zone.mobs) {
+                if (mob != null && !mob.isDie()) {
+                    return false;
+                }
+            }
+        }
+        List<Player> bosses = zone.getBosses();
+        if (bosses != null) {
+            for (Player boss : bosses) {
+                if (boss != null && !boss.isDie()) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    private Zone resolveDungeonTransition(Player player, Zone targetDungeonZone, boolean isCurrentMapInDungeon) {
+        if (targetDungeonZone == null) {
+            return null;
+        }
+        if (isCurrentMapInDungeon) {
+            if (isZoneCleared(targetDungeonZone)) {
+                return targetDungeonZone;
+            }
+            if (!isZoneCleared(player.zone)) {
+                return null;
+            }
+        }
+        return targetDungeonZone;
+    }
+
     public List<Map> getAllMaps() {
-        return this.getAllMaps();
+        return Manager.MAPS;
     }
 
     public Zone getZone(int mapId) {
         Map map = getMapById(mapId);
-        if (map == null) {
+        if (map == null || map.zones == null || map.zones.isEmpty()) {
             return null;
         }
 
-        int z = Util.nextInt(0, map.zones.size() - 1);
-        //  int z = 0;
-        while (map.zones.get(z).getNumOfPlayers() >= map.zones.get(z).maxPlayer) {
-            z = Util.nextInt(0, map.zones.size() - 1);
-            //    z++;
+        List<Zone> availableZones = new ArrayList<>();
+        for (Zone zone : map.zones) {
+            if (zone != null && !zone.isFullPlayer()) {
+                availableZones.add(zone);
+            }
         }
-        return map.zones.get(z);
+        if (!availableZones.isEmpty()) {
+            return availableZones.get(Util.nextInt(0, availableZones.size() - 1));
+        }
+        return map.zones.get(0);
     }
 
     public Zone getZoneByMapIDAndZoneID(int mapId, int zoneId) {
@@ -475,8 +377,7 @@ public class MapService {
     }
 
     public boolean isMapCold(Map map) {
-        int mapId = map.mapId;
-        return (mapId >= 105 && mapId <= 110) || mapId == 152;
+        return map != null && isMapCold(map.mapId);
     }
 
     public boolean isMapTuongLai(Map map) {
@@ -485,7 +386,7 @@ public class MapService {
     }
 
     public boolean isMapCold(int mapId) {
-        return mapId >= 105 && mapId <= 110;
+        return (mapId >= 105 && mapId <= 110) || mapId == 152;
     }
 
     public boolean isMapDoanhTrai(int mapId) {

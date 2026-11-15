@@ -35,10 +35,7 @@ public class ItemMap {
 
     public ItemMap(Zone zone, int tempId, int quantity, int x, int y, long playerId) {
         this.zone = zone;
-        this.itemMapId = zone.countItemAppeaerd++;
-        if (zone.countItemAppeaerd >= 2000000000) {
-            zone.countItemAppeaerd = 0;
-        }
+        this.itemMapId = zone.nextItemMapId();
         this.itemTemplate = ItemService.gI().getTemplate((short) tempId);
         this.quantity = quantity;
         this.x = x;
@@ -54,10 +51,7 @@ public class ItemMap {
 
     public ItemMap(Zone zone, ItemTemplate temp, int quantity, int x, int y, long playerId) {
         this.zone = zone;
-        this.itemMapId = zone.countItemAppeaerd++;
-        if (zone.countItemAppeaerd >= 2000000000) {
-            zone.countItemAppeaerd = 0;
-        }
+        this.itemMapId = zone.nextItemMapId();
         this.itemTemplate = temp;
         this.quantity = quantity;
         this.x = x;

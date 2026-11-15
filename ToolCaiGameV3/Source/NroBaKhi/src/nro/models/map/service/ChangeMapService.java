@@ -13,7 +13,6 @@ import nro.models.player.Player;
 import nro.models.matches.TYPE_LOSE_PVP;
 import nro.models.services.Service;
 import nro.models.services_func.TransactionService;
-import nro.models.services_func.UseItem;
 import nro.models.utils.Util;
 import nro.models.network.Message;
 import nro.models.item.Item;
@@ -41,17 +40,15 @@ public class ChangeMapService {
     public static final byte TELEPORT_YARDRAT = 2;
     public static final byte TENNIS_SPACE_SHIP = 3;
 
-    private static ChangeMapService instance;
-
     private ChangeMapService() {
+    }
 
+    private static final class Holder {
+        private static final ChangeMapService INSTANCE = new ChangeMapService();
     }
 
     public static ChangeMapService gI() {
-        if (instance == null) {
-            instance = new ChangeMapService();
-        }
-        return instance;
+        return Holder.INSTANCE;
     }
 
     /**
@@ -78,6 +75,7 @@ public class ChangeMapService {
                         }
                         msg.writer().writeUTF(zone.map.planetName);
                     }
+                    break;
                 case ConstMap.CHANGE_BLACK_BALL:
                     list = (pl.mapBlackBall != null ? pl.mapBlackBall
                             : (pl.mapBlackBall = MapService.gI().getMapBlackBall()));
@@ -99,7 +97,7 @@ public class ChangeMapService {
             }
             pl.sendMessage(msg);
         } catch (Exception e) {
-            Logger.logException(UseItem.class, e);
+            Logger.logException(ChangeMapService.class, e);
         } finally {
             if (msg != null) {
                 msg.cleanup();
@@ -149,6 +147,7 @@ public class ChangeMapService {
             }
             pl.sendMessage(msg);
         } catch (Exception e) {
+            Logger.logException(ChangeMapService.class, e);
         } finally {
             if (msg != null) {
                 msg.cleanup();
@@ -524,9 +523,12 @@ public class ChangeMapService {
 
     public void finishLoadMap(Player player) {
         try {
-            player.zone.load_Me_To_Another(player);
-            player.zone.load_Another_To_Me(player);
+            if (player.zone != null) {
+                player.zone.load_Me_To_Another(player);
+                player.zone.load_Another_To_Me(player);
+            }
         } catch (Exception e) {
+            Logger.logException(ChangeMapService.class, e);
         }
         Service.gI().sendEffAllPlayerMapToMe(player);
         Service.gI().sendEffPlayer(player);
@@ -559,13 +561,16 @@ public class ChangeMapService {
             EffectSkillService.gI().removeBodyChangeTechnique(player);
         }
         try {
-            for (int i = player.zone.getPlayers().size() - 1; i >= 0; i--) {
-                Player pl = player.zone.getPlayers().get(i);
-                if (pl.isPl() && pl.effectSkill != null && pl.effectSkill.isBodyChangeTechnique) {
-                    Service.gI().playerInfoUpdate(pl, player, "!Tiểu đội trưởng", 180, 181, 182);
+            if (player.zone != null) {
+                for (int i = player.zone.getPlayers().size() - 1; i >= 0; i--) {
+                    Player pl = player.zone.getPlayers().get(i);
+                    if (pl != null && pl.isPl() && pl.effectSkill != null && pl.effectSkill.isBodyChangeTechnique) {
+                        Service.gI().playerInfoUpdate(pl, player, "!Tiểu đội trưởng", 180, 181, 182);
+                    }
                 }
             }
         } catch (Exception e) {
+            Logger.logException(ChangeMapService.class, e);
         }
         if (player.zone != null && player.zone.map.mapId == 126) {
             player.zone.sendBigBoss(player);
@@ -614,6 +619,7 @@ public class ChangeMapService {
                 msg.cleanup();
             }
         } catch (Exception e) {
+            Logger.logException(ChangeMapService.class, e);
         } finally {
             if (msg != null) {
                 msg.cleanup();
@@ -656,6 +662,7 @@ public class ChangeMapService {
                 }
             }
         } catch (Exception e) {
+            Logger.logException(ChangeMapService.class, e);
         } finally {
             if (msg != null) {
                 msg.cleanup();
@@ -731,6 +738,7 @@ public class ChangeMapService {
                 }
             }
         } catch (Exception e) {
+            Logger.logException(ChangeMapService.class, e);
         } finally {
             if (msg != null) {
                 msg.cleanup();
@@ -756,6 +764,7 @@ public class ChangeMapService {
                     break;
             }
         } catch (Exception e) {
+            Logger.logException(ChangeMapService.class, e);
         } finally {
             if (msg != null) {
                 msg.cleanup();
@@ -809,7 +818,7 @@ public class ChangeMapService {
                     Service.gI().sendMessAnotherNotMeInMap(player, msg);
                     player.zone = null;
                 } catch (Exception e) {
-                    Logger.logException(MapService.class, e);
+                    Logger.logException(ChangeMapService.class, e);
                 } finally {
                     if (msg != null) {
                         msg.cleanup();
@@ -865,6 +874,7 @@ public class ChangeMapService {
             msg.writer().writeByte(type);
             player.sendMessage(msg);
         } catch (Exception e) {
+            Logger.logException(ChangeMapService.class, e);
         } finally {
             if (msg != null) {
                 msg.cleanup();
@@ -876,7 +886,7 @@ public class ChangeMapService {
         if (zoneJoin == null) {
             return null;
         }
-        if (zoneJoin.map.mapId == -1 || zoneJoin.map.mapId == -1) {
+        if (zoneJoin.map.mapId == -1) {
             return null;
         }
         if (player.isPet || player.isBoss || player.getSession() != null && player.isAdmin()) {
@@ -979,7 +989,7 @@ public class ChangeMapService {
                     if (TaskService.gI().getIdTask(player) < ConstTask.TASK_20_0) {
                         return null;
                     }
-
+                    break;
                 case 102: //nhà bunma
                 case 92: //thành phố phía đông
                 case 93: //thành phố phía nam
@@ -1120,10 +1130,11 @@ public class ChangeMapService {
         Map map = getMapById(mapId);
         Zone zoneJoin = null;
         try {
-            if (map != null) {
+            if (map != null && zoneId >= 0 && zoneId < map.zones.size()) {
                 zoneJoin = map.zones.get(zoneId);
             }
         } catch (Exception e) {
+            Logger.logException(ChangeMapService.class, e);
         }
         return zoneJoin;
     }

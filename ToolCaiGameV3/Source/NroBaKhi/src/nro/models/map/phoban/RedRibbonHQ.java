@@ -13,7 +13,6 @@ import nro.models.player.Player;
 import nro.models.map.service.ChangeMapService;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.Executors;
 import lombok.Data;
 import nro.models.map.ItemMap;
 import nro.models.server.Maintenance;
@@ -24,7 +23,8 @@ import nro.models.services.Service;
 import nro.models.utils.Util;
 
 @Data
-public class RedRibbonHQ implements Runnable {
+@lombok.EqualsAndHashCode(callSuper = false)
+public class RedRibbonHQ extends AbstractClanDungeon {
 
     //bang hội đủ số người mới đc mở
     public static final int N_PLAYER_CLAN = 5;
@@ -34,12 +34,6 @@ public class RedRibbonHQ implements Runnable {
     public static final int TIME_DOANH_TRAI = 1800000;
     public static final int TIME_PICK_DOANH_TRAI = 300000;
 
-    public int id;
-    public final List<Zone> zones;
-    private Clan clan;
-
-    private long lastTimeOpen;
-    public boolean isOpened;
     public boolean isTimePicking;
     public long lastTimePick;
     public boolean winDT;
@@ -47,20 +41,6 @@ public class RedRibbonHQ implements Runnable {
 
     public RedRibbonHQ(int id) {
         this.id = id;
-        this.zones = new ArrayList<>();
-    }
-
-    public void addZone(Zone zone) {
-        this.zones.add(zone);
-    }
-
-    public Zone getMapById(int mapId) {
-        for (Zone zone : this.zones) {
-            if (zone.map.mapId == mapId) {
-                return zone;
-            }
-        }
-        return null;
     }
 
     @Override
@@ -327,8 +307,9 @@ public class RedRibbonHQ implements Runnable {
                 if (mob.isDie()) {
                     continue;
                 }
-                mob.point.dame = (int) (totalHp / mob.tempId < 2_147_483_647 ? totalHp / mob.tempId : 2_147_483_647);
-                mob.point.maxHp = (int) (totalDame/3 * mob.tempId < 2_147_483_647 ? totalDame * mob.tempId : 2_147_483_647);
+                long mobTempId = Math.max(1, mob.tempId);
+                mob.point.dame = (int) Math.min(totalHp / mobTempId, (long) Integer.MAX_VALUE);
+                mob.point.maxHp = (int) Math.min((totalDame / 3) * mobTempId, (long) Integer.MAX_VALUE);
                 mob.point.hp = mob.point.maxHp;
                 mob.setTiemNang();
             }

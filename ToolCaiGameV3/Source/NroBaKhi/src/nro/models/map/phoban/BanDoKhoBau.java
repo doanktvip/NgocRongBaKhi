@@ -15,37 +15,27 @@ import nro.models.map.service.ChangeMapService;
 import nro.models.utils.Util;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.Executors;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import nro.models.server.Maintenance;
 import nro.models.map.service.ItemMapService;
 import nro.models.utils.TimeUtil;
 
 @Data
-public class BanDoKhoBau implements Runnable {
+@EqualsAndHashCode(callSuper = false)
+public class BanDoKhoBau extends AbstractClanDungeon {
 
     public static final long POWER_CAN_GO_TO_DBKB = 2000000000;
     public static final int AVAILABLE = 50;
     public static final int TIME_BAN_DO_KHO_BAU = 1800000;
-    public int id;
-    public byte level;
-    public final List<Zone> zones;
-    public Clan clan;
-    public boolean isOpened;
-    private long lastTimeOpen;
     private boolean kickoutbdkb;
     private long timeKickOutBDKB;
     private Boss boss;
     private long lastTimeSendNotify;
     private boolean allCharactersDead;
 
-    public void addZone(Zone zone) {
-        this.zones.add(zone);
-    }
-
     public BanDoKhoBau(int id) {
         this.id = id;
-        this.zones = new ArrayList<>();
     }
 
     @Override
@@ -227,15 +217,6 @@ public class BanDoKhoBau implements Runnable {
         if (MapService.gI().isMapBanDoKhoBau(player.zone.map.mapId)) {
             ChangeMapService.gI().changeMapBySpaceShip(player, 5, -1, 1038);
         }
-    }
-
-    public Zone getMapById(int mapId) {
-        for (Zone zone : this.zones) {
-            if (zone.map.mapId == mapId) {
-                return zone;
-            }
-        }
-        return null;
     }
 
     private void sendTextBanDoKhoBau() {

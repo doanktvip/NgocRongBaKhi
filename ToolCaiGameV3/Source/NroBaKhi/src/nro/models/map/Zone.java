@@ -37,6 +37,13 @@ public class Zone {
     public final List<BotAttackplayer> bots = new CopyOnWriteArrayList<>();
 
     public int countItemAppeaerd = 0;
+    private final java.util.concurrent.atomic.AtomicInteger itemIdGenerator = new java.util.concurrent.atomic.AtomicInteger(0);
+
+    public int nextItemMapId() {
+        int nextId = itemIdGenerator.updateAndGet(curr -> (curr >= 2_000_000_000) ? 1 : curr + 1);
+        this.countItemAppeaerd = nextId;
+        return nextId;
+    }
 
     public Map map;
     public int zoneId;
@@ -197,6 +204,11 @@ public class Zone {
         this.items = new CopyOnWriteArrayList<>();
         this.trapMaps = new CopyOnWriteArrayList<>();
         this.maBuHolds = new CopyOnWriteArrayList<>();
+        if (map != null && map.mapId == 128) {
+            for (int slot = 0; slot < 4; slot++) {
+                this.maBuHolds.add(new MaBuHold(slot, null));
+            }
+        }
     }
 
     public int getNumOfPlayers() {
@@ -376,11 +388,9 @@ public class Zone {
                                     msg.cleanup();
                                     Service.gI().sendToAntherMePickItem(player, itemMapId);
 
-                                    // Mark item as picked up unless the item ID is 74
-                                    if (picked) {
-                                        if (itemMap.itemTemplate.id != 74) {
-                                            itemMap.isPickedUp = true;
-                                        }
+                                    picked = true;
+                                    if (itemMap.itemTemplate != null && itemMap.itemTemplate.id != 74 && itemMap.itemTemplate.id != 78) {
+                                        itemMap.isPickedUp = true;
                                     }
 
                                     if (!(this.map.mapId >= 21 && this.map.mapId <= 23
@@ -470,7 +480,7 @@ public class Zone {
                 }
             }
         } catch (Exception e) {
-            Logger.logException(MapService.class, e);
+            Logger.logException(Zone.class, e);
         }
     }
 
@@ -498,7 +508,7 @@ public class Zone {
                 }
             }
         } catch (Exception e) {
-            Logger.logException(MapService.class, e);
+            Logger.logException(Zone.class, e);
         }
     }
 
@@ -506,22 +516,24 @@ public class Zone {
         try {
             if (MapService.gI().isMapOffline(this.map.mapId)) {
                 //Load boss
-                for (Player pl : this.bosses) {
-                    if (!boss.equals(pl) && !pl.isPl() && !pl.isPet && !pl.isNewPet) {
+                for (int i = this.bosses.size() - 1; i >= 0; i--) {
+                    Player pl = this.bosses.get(i);
+                    if (pl != null && !boss.equals(pl) && !pl.isPl() && !pl.isPet && !pl.isNewPet) {
                         infoPlayer(boss, pl);
                         infoPlayer(pl, boss);
                     }
                 }
             } else {
-                for (Player pl : this.bosses) {
-                    if (!boss.equals(pl)) {
+                for (int i = this.bosses.size() - 1; i >= 0; i--) {
+                    Player pl = this.bosses.get(i);
+                    if (pl != null && !boss.equals(pl)) {
                         infoPlayer(boss, pl);
                         infoPlayer(pl, boss);
                     }
                 }
             }
         } catch (Exception e) {
-            Logger.logException(MapService.class, e);
+            Logger.logException(Zone.class, e);
         }
     }
 
@@ -582,7 +594,7 @@ public class Zone {
             plReceive.sendMessage(msg);
             msg.cleanup();
         } catch (Exception e) {
-            e.printStackTrace();
+            Logger.logException(Zone.class, e);
         }
         Service.gI().sendFlagPlayerToMe(plReceive, plInfo);
         try {
@@ -592,6 +604,7 @@ public class Zone {
                 }
             }
         } catch (Exception e) {
+            Logger.logException(Zone.class, e);
         }
 
         try {
@@ -605,7 +618,7 @@ public class Zone {
                 msg.cleanup();
             }
         } catch (Exception e) {
-
+            Logger.logException(Zone.class, e);
         }
     }
 
@@ -705,18 +718,16 @@ public class Zone {
             }
 
             // bg item
-            try {
-                final byte[] bgItem = FileIO.readFile("data/map/item_bg_map_data/" + this.map.mapId);
-                msg.writer().write(bgItem);
-            } catch (Exception e) {
+            if (this.map != null && this.map.bgItemData != null && this.map.bgItemData.length > 0) {
+                msg.writer().write(this.map.bgItemData);
+            } else {
                 msg.writer().writeShort(0);
             }
 
             // eff item
-            try {
-                final byte[] effItem = FileIO.readFile("data/map/eff_map/" + this.map.mapId);
-                msg.writer().write(effItem);
-            } catch (Exception e) {
+            if (this.map != null && this.map.effMapData != null && this.map.effMapData.length > 0) {
+                msg.writer().write(this.map.effMapData);
+            } else {
                 msg.writer().writeShort(0);
             }
 
@@ -728,7 +739,7 @@ public class Zone {
             msg.cleanup();
 
         } catch (Exception e) {
-            Logger.logException(Service.class, e);
+            Logger.logException(Zone.class, e);
         }
     }
 
@@ -764,7 +775,6 @@ public class Zone {
                 Zone z128 = map128.zones.get(zId);
                 if (z128 != null) {
                     if (z128.maBuHolds == null || z128.maBuHolds.isEmpty()) {
-                        z128.maBuHolds = new ArrayList<>();
                         for (int slot = 0; slot < 4; slot++) {
                             z128.maBuHolds.add(new MaBuHold(slot, null));
                         }
@@ -777,6 +787,7 @@ public class Zone {
                 }
             }
         } catch (Exception e) {
+            Logger.logException(Zone.class, e);
         }
         return null;
     }
@@ -789,7 +800,6 @@ public class Zone {
                 Zone z128 = map128.zones.get(zId);
                 if (z128 != null) {
                     if (z128.maBuHolds == null || z128.maBuHolds.isEmpty()) {
-                        z128.maBuHolds = new ArrayList<>();
                         for (int s = 0; s < 4; s++) {
                             z128.maBuHolds.add(new MaBuHold(s, null));
                         }
@@ -800,32 +810,39 @@ public class Zone {
                 }
             }
         } catch (Exception e) {
+            Logger.logException(Zone.class, e);
         }
     }
 
     public boolean isKhongCoTrongTaiTrongKhu() {
         boolean kovao = true;
-        for (Player pl : players) {
+        for (int i = this.players.size() - 1; i >= 0; i--) {
+            Player pl = this.players.get(i);
+            if (pl == null) {
+                continue;
+            }
             if (!pl.isPl()) {
                 kovao = false;
                 break;
             }
-            if ((pl.zone.map.mapId >= 21
-                    && pl.zone.map.mapId <= 23)
-                    || pl.zone.map.mapId == 170
-                    || pl.zone.map.mapId == 153
-                    || pl.zone.map.mapId == 52
-                    || pl.zone.map.mapId == 113
-                    || pl.zone.map.mapId == 129
-                    || MapService.gI().isMapDoanhTrai(pl.zone.map.mapId)
-                    || MapService.gI().isMapBlackBallWar(pl.zone.map.mapId)
-                    || MapService.gI().isMapBanDoKhoBau(pl.zone.map.mapId)
-                    || MapService.gI().isMapPhoBan(pl.zone.map.mapId)
-                    || MapService.gI().isMapMaBu(pl.zone.map.mapId)
-                    || MapService.gI().isMapKhiGasHuyDiet(pl.zone.map.mapId)
-                    || MapService.gI().isMapConDuongRanDoc(pl.zone.map.mapId)
-                    || MapService.gI().isMapOffline(pl.zone.map.mapId)) {
-                kovao = false;
+            if (pl.zone != null && pl.zone.map != null) {
+                int mId = pl.zone.map.mapId;
+                if ((mId >= 21 && mId <= 23)
+                        || mId == 170
+                        || mId == 153
+                        || mId == 52
+                        || mId == 113
+                        || mId == 129
+                        || MapService.gI().isMapDoanhTrai(mId)
+                        || MapService.gI().isMapBlackBallWar(mId)
+                        || MapService.gI().isMapBanDoKhoBau(mId)
+                        || MapService.gI().isMapPhoBan(mId)
+                        || MapService.gI().isMapMaBu(mId)
+                        || MapService.gI().isMapKhiGasHuyDiet(mId)
+                        || MapService.gI().isMapConDuongRanDoc(mId)
+                        || MapService.gI().isMapOffline(mId)) {
+                    kovao = false;
+                }
             }
         }
         return kovao;
@@ -835,7 +852,8 @@ public class Zone {
         Player closest = null;
         int minDistance = Integer.MAX_VALUE;
 
-        for (Player p : this.players) {
+        for (int i = this.players.size() - 1; i >= 0; i--) {
+            Player p = this.players.get(i);
             if (p != null && !p.isDie() && !p.equals(pet.master)) {
                 int distance = Math.abs(p.location.x - pet.location.x);
                 if (distance < minDistance) {
@@ -852,7 +870,8 @@ public class Zone {
         Mob closest = null;
         int minDistance = Integer.MAX_VALUE;
 
-        for (Mob m : this.mobs) {
+        for (int i = this.mobs.size() - 1; i >= 0; i--) {
+            Mob m = this.mobs.get(i);
             if (m != null && !m.isDie()) {
                 int distance = Math.abs(m.location.x - pet.location.x);
                 if (distance < minDistance) {

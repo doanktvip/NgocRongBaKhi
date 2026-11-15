@@ -9,13 +9,15 @@ import nro.models.utils.Util;
 
 public class ItemMapService {
 
-    private static ItemMapService instance;
+    private ItemMapService() {
+    }
+
+    private static final class Holder {
+        private static final ItemMapService INSTANCE = new ItemMapService();
+    }
 
     public static ItemMapService gI() {
-        if (instance == null) {
-            instance = new ItemMapService();
-        }
-        return instance;
+        return Holder.INSTANCE;
     }
 
     public void pickItem(Player player, int itemMapId, boolean isThuHut) {
