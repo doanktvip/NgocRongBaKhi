@@ -266,6 +266,9 @@ public class ItemTimeService {
     }
 
     public void sendTextTime(Player player, byte id, String text, int seconds) {
+        if (player == null || player.getSession() == null) {
+            return;
+        }
         Message msg;
         try {
             msg = new Message(65);
@@ -274,11 +277,14 @@ public class ItemTimeService {
             msg.writer().writeShort(seconds);
             player.sendMessage(msg);
             msg.cleanup();
-        } catch (IOException e) {
+        } catch (Exception e) {
         }
     }
 
     public void sendItemTime(Player player, int itemId, int time) {
+        if (player == null || player.getSession() == null) {
+            return;
+        }
         Message msg;
         try {
             msg = new Message(-106);
@@ -286,7 +292,7 @@ public class ItemTimeService {
             msg.writer().writeShort(time);
             player.sendMessage(msg);
             msg.cleanup();
-        } catch (IOException e) {
+        } catch (Exception e) {
         }
     }
 

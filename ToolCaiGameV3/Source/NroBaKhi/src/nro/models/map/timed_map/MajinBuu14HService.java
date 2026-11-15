@@ -32,7 +32,10 @@ public class MajinBuu14HService {
     }
 
     public void addMapMaBu2H(int id, Zone zone) {
-        if (zone.map.mapId == 128) {
+        if (zone.map != null && zone.map.mapId == 128 && (zone.maBuHolds == null || zone.maBuHolds.isEmpty())) {
+            if (zone.maBuHolds == null) {
+                zone.maBuHolds = new java.util.concurrent.CopyOnWriteArrayList<>();
+            }
             for (int slot = 0; slot < 4; slot++) {
                 zone.maBuHolds.add(new MaBuHold(slot, null));
             }

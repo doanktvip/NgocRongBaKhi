@@ -27,7 +27,7 @@ public class EffectMapService {
         Message msg = null;
         try {
             msg = new Message(113);
-            msg.writer().writeByte(id);
+            msg.writer().writeByte(loop);
             msg.writer().writeByte(layer);
             msg.writer().writeByte(id);
             msg.writer().writeShort(x);

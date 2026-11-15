@@ -48,6 +48,62 @@
 
 ## 4. Lịch Sử Thực Thi Gần Nhất (Completed Tasks Log)
 
+* **[Vá Lỗi NPE Tại TrungUyTrang.leaveMap & RedRibbonHQ.dispose]**:
+  * **Sửa lỗi `Cannot assign field isTUTAlive because this.zone is null`**:
+    - Khi Trung Úy Trắng bị tiêu diệt trong game, boss đã chuyển sang status `REST` và rời map (`this.zone = null`).
+    - Khi hết thời gian, hàm `dispose()` của Doanh Trại duyệt danh sách boss và kiểm tra `!boss.isDie()`. Vì status của boss lúc này là `REST` (không phải `DIE`), code lại gọi `boss.leaveMap()` thêm một lần nữa.
+    - Tại `TrungUyTrang.leaveMap()`, dòng code `this.zone.isTUTAlive = false;` gọi trên `this.zone` đã null $\rightarrow$ Ném `NullPointerException`.
+  * **Giải pháp khắc phục**:
+    - Thêm `if (this.zone != null)` trong [TrungUyTrang.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/boss/doanh_trai/TrungUyTrang.java#L168-L171).
+    - Trong [RedRibbonHQ.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/map/phoban/RedRibbonHQ.java#L412-L415) hàm `dispose()`, chuyển điều kiện thành `if (boss != null && boss.zone != null)` để chỉ dọn những boss còn đang sống thực tế trong map.
+  * **Biên dịch**: `javac` biên dịch mới 100% thành công không có bất kỳ lỗi nào vào `build/classes`.
+
+* **[Vá Triệt Để Lỗi Loop NPE Khi Hết Giờ Doanh Trại (kickOutOfDT & dispose)]**:
+  * **Sửa lỗi spam NPE vô hạn khi hết 5 phút nhặt ngọc**:
+    - Khi hết thời gian, hàm `finish()` gọi `kickOutOfDT(player)` truy cập `player.zone.map.mapId` mà không kiểm tra null khi người chơi đang bay phi thuyền về nhà $\rightarrow$ Ném NPE khiến `dispose()` không chạy được.
+    - Trong `dispose()`, `removeTextDoanhTrai()` duyệt thành viên trong bang gửi gói tin `Message(65)` nhưng không kiểm tra `player.getSession() == null` $\rightarrow$ Ném NPE.
+    - Vì `this.isOpened = false;` đặt ở cuối `dispose()`, khi có lỗi ở trên thì biến này không bao giờ được gán `false`, khiến vòng lặp `while (isOpened)` trong hàm `run()` chạy liên tục mỗi 150ms $\rightarrow$ Spam lỗi NPE liên tục như thác nước trên console.
+  * **Giải pháp khắc phục**:
+    - Thêm `this.isOpened = false;` ngay đầu `dispose()`, bọc dọn dẹp trong `try ... finally` đảm bảo `clan.doanhTrai = null; clan = null;` luôn giải phóng 100%.
+    - Thêm kiểm tra null an toàn trong `kickOutOfDT` và `ItemTimeService.sendTextTime`.
+    - Thêm `return;` ngay sau `dispose()` trong `update()`.
+  * **Biên dịch & Đóng gói**: Chạy `compile_check.bat` thành công 100% (`[COMPILE_SUCCESS]`), cập nhật sạch sẽ vào `NroBaKhi.jar`.
+
+* **[Đồng Bộ Thời Gian & Trạng Thái Doanh Trại Tại NPC Lính Canh]**:
+  * **Sửa lỗi lệch thời gian giữa Icon đếm ngược và NPC**:
+    - Khi người chơi đã tiêu diệt trại và gặp Độc Nhãn, Doanh Trại bước vào giai đoạn 5 phút nhặt ngọc (`isTimePicking == true`).
+    - Trước đó, `LinhCanh.java` luôn tính thời gian theo tổng 30 phút (`TIME_DOANH_TRAI`) dẫn tới việc góc trái màn hình hiển thị `4'` nhưng NPC lại báo `25 phút`.
+    - Đã phân tách rõ trong [LinhCanh.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/npc_list/LinhCanh.java): khi `isTimePicking == true`, lấy thời gian từ `lastTimePick` với `TIME_PICK_DOANH_TRAI` (5 phút) và thông báo câu thoại *"đã tiêu diệt trại độc nhãn và đang nhặt ngọc"*. Khi đang đánh, đếm theo 30 phút. Đồng bộ 100% với giao diện client.
+  * **Biên dịch**: `javac` biên dịch mới 100% thành công không có bất kỳ lỗi nào vào `build/classes`.
+
+* **[Vá Lỗi Crash NPE Doanh Trại & Giải Quyết Vòng Đời Phoban]**:
+  * **Sửa lỗi crash `NullPointerException` tại `RedRibbonHQ.updateHPDame()`**:
+    - Khi người chơi bấm "Tham gia" để vào lại Doanh Trại, hàm `updateHPDame` duyệt qua danh sách `bosses`. Những con boss đã bị hạ gục trước đó gọi `leaveMap()` khiến `boss.zone == null`, dẫn đến văng lỗi `NullPointerException: Cannot read field "map" because "<local10>.zone" is null`.
+    - Đã thêm kiểm tra an toàn toàn diện: `if (boss == null || boss.isDie() || boss.zone == null || boss.zone.map == null) continue;` và dùng `int mapId = boss.zone.map.mapId;` với cấu trúc `else if` tối ưu.
+  * **Giải thích cơ chế vòng đời kết thúc Doanh Trại**: Doanh trại chỉ thực sự đóng và reset khi hết 5 phút nhặt ngọc của Độc Nhãn hoặc hết 30 phút tối đa.
+  * **Biên dịch**: `javac` biên dịch mới 100% thành công không có bất kỳ lỗi nào vào `build/classes`.
+
+* **[Tối Ưu Hóa NPC Lính Canh & Phó Bản Doanh Trại Độc Nhãn]**:
+  * **Vá 3 nguy cơ NPE tại `LinhCanh.java`**:
+    - Thêm kiểm tra an toàn `player.getSession() == null || !player.getSession().actived` khi kiểm tra mở thành viên.
+    - Thêm kiểm tra an toàn `player.clanMember == null || player.clanMember.getNumDateFromJoinTimeToToday() < RedRibbonHQ.N_DAY_JOIN_CLAN`.
+    - Bảo vệ biến tạm `player.clan.playerOpenDoanhTrai != null` tránh văng lỗi crash menu NPC sau khi server restart/bảo trì.
+  * **Tối ưu trải nghiệm (UX Ordering)**: Đảo điều kiện xét lượt đi trong ngày lên trước điều kiện đếm đồng đội đứng gần.
+  * **Đồng bộ hằng số tọa độ**: Đưa `MIN_X_JOIN = 1285` và `MAX_X_JOIN = 1645` vào [RedRibbonHQ.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/map/phoban/RedRibbonHQ.java) và dùng chung trong [LinhCanh.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/npc_list/LinhCanh.java). Thoát sớm `break;` vòng lặp khi đủ số lượng người đứng gần.
+  * **Vá NPE trong `RedRibbonHQ.openDoanhTrai`**: Thêm kiểm tra null cho `pl.clanMember` và `pl.location` khi quét người chơi cùng bang.
+  * **Biên dịch & Đóng gói**: Chạy `compile_check.bat` thành công 100% (`[COMPILE_SUCCESS]`), cập nhật sạch sẽ vào `NroBaKhi.jar`.
+
+* **[Kiểm Tra & Vá 3 Lỗi Logic Trong Các File Service Vừa Quy Hoạch Vào map/]**:
+  * **Vá Issue 1 (`service/EffectMapService.java`)**:
+    - Sửa byte đầu tiên của gói tin `Message(113)` trong `sendEffectMapToPlayer` từ `writeByte(id)` thành `writeByte(loop)`, khớp với tham số `loop` truyền vào và đồng bộ với cấu trúc gói tin của `sendEffectMapToAllInMap`.
+  * **Vá Issue 2 (`timed_map/BlackBallWarService.java`)**:
+    - Xóa bỏ 2 dòng gọi nhầm `setHp`/`setMp` trong hàm `xDame(Player, byte)` để tránh bug tự động hồi máu/KI bất thường khi người chơi chỉ mua bùa phù hộ Sức đánh.
+    - Bọc kiểm soát biên chống tràn số `Math.min((long) player.nPoint.hp * x, (long) player.nPoint.hpMax)` trong hàm `xHPKI` để đảm bảo an toàn tuyệt đối theo Điều 15 của `GEMINI.md`.
+  * **Vá Issue 3 (`timed_map/MajinBuu14HService.java`)**:
+    - Thêm điều kiện `if (zone.map != null && zone.map.mapId == 128 && (zone.maBuHolds == null || zone.maBuHolds.isEmpty()))` trong hàm `addMapMaBu2H(int id, Zone zone)`. Tránh bug nhân đôi số lượng kén giam từ 4 slot lên 8 slot do `Zone.java` constructor đã khởi tạo sẵn 4 slot `MaBuHold` cho Map 128.
+  * **Biên dịch & Đóng gói**:
+    - Script `compile_check.bat` tự động kiểm tra hoàn tất, trả về `[COMPILE_SUCCESS]`, đóng gói thành công `NroBaKhi.jar`.
+
 * **[Quy Hoạch Toàn Diện Hệ Thống Map: Đồng Bộ phoban & map.service]**:
   * **Đóng gói trọn gói Phó bản bang hội (`nro.models.map.phoban`)**:
     - Chuyển 4 Service phó bản (`TreasureUnderSeaService`, `DestronGasService`, `RedRibbonHQService`, `SnakeWayService`) từ `services_dungeon` sang `nro.models.map.phoban`.

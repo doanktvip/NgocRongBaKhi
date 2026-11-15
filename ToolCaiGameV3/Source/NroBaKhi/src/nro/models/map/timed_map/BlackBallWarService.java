@@ -140,8 +140,8 @@ public class BlackBallWarService {
             player.effectSkin.lastTimeXHPKI = System.currentTimeMillis();
             player.effectSkin.xHPKI = x;
             player.nPoint.calPoint();
-            player.nPoint.setHp((int) player.nPoint.hp * x);
-            player.nPoint.setMp((int) player.nPoint.mp * x);
+            player.nPoint.setHp((int) Math.min((long) player.nPoint.hp * x, (long) player.nPoint.hpMax));
+            player.nPoint.setMp((int) Math.min((long) player.nPoint.mp * x, (long) player.nPoint.mpMax));
             PlayerService.gI().sendInfoHpMp(player);
             Service.gI().point(player);
         } else {
@@ -169,9 +169,6 @@ public class BlackBallWarService {
             player.effectSkin.lastTimeXDame = System.currentTimeMillis();
             player.effectSkin.xDame = x;
             player.nPoint.calPoint();
-            player.nPoint.setHp((int) player.nPoint.hp * x);
-            player.nPoint.setMp((int) player.nPoint.mp * x);
-            PlayerService.gI().sendInfoHpMp(player);
             Service.gI().point(player);
         } else {
             Service.gI().sendThongBao(player, "Không đủ vàng để thực hiện, còn thiếu "

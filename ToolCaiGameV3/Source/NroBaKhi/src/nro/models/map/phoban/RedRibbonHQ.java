@@ -27,12 +27,15 @@ import nro.models.utils.Util;
 public class RedRibbonHQ extends AbstractClanDungeon {
 
     //bang hội đủ số người mới đc mở
-    public static final int N_PLAYER_CLAN = 5;
+    public static final int N_PLAYER_CLAN = 1;
     //số người đứng cùng khu
-    public static final int N_PLAYER_MAP = 1;
+    public static final int N_PLAYER_MAP = 0;
     public static final int AVAILABLE = 50;
     public static final int TIME_DOANH_TRAI = 1800000;
     public static final int TIME_PICK_DOANH_TRAI = 300000;
+    public static final int N_DAY_JOIN_CLAN = 1;
+    public static final int MIN_X_JOIN = 1285;
+    public static final int MAX_X_JOIN = 1645;
 
     public boolean isTimePicking;
     public long lastTimePick;
@@ -51,7 +54,8 @@ public class RedRibbonHQ extends AbstractClanDungeon {
                 update();
                 Functions.sleep(Math.max(150 - (System.currentTimeMillis() - startTime), 10));
             } catch (Exception e) {
-                e.printStackTrace();
+                nro.models.utils.Logger.logException(RedRibbonHQ.class, e);
+                Functions.sleep(1000);
             }
         }
     }
@@ -79,13 +83,14 @@ public class RedRibbonHQ extends AbstractClanDungeon {
         //Đưa thành viên vào doanh trại
         for (Player pl : player.zone.getPlayers()) {
             if (pl != null && !pl.equals(player) && pl.clan != null
-                    && pl.clan.equals(player.clan) && pl.location.x >= 1285
-                    && pl.location.x <= 1645) {
+                    && pl.clan.equals(player.clan) && pl.location != null
+                    && pl.location.x >= MIN_X_JOIN
+                    && pl.location.x <= MAX_X_JOIN) {
                 plJoinDT.add(pl);
             }
         }
         for (Player pl : plJoinDT) {
-            if (pl.clanMember.getNumDateFromJoinTimeToToday() < 1 || pl.isDie()) {
+            if (pl.clanMember == null || pl.clanMember.getNumDateFromJoinTimeToToday() < 1 || pl.isDie()) {
                 continue;
             }
             pl.lastTimeJoinDT = System.currentTimeMillis();
@@ -195,23 +200,30 @@ public class RedRibbonHQ extends AbstractClanDungeon {
     }
 
     public void update() {
-        if (isOpened) {
-            if ((!isTimePicking && Util.canDoWithTime(lastTimeOpen, TIME_DOANH_TRAI)) || (isTimePicking && Util.canDoWithTime(lastTimePick, TIME_PICK_DOANH_TRAI))) {
-                finish();
-                dispose();
-            }
+        if (!isOpened) {
+            return;
+        }
+        if ((!isTimePicking && Util.canDoWithTime(lastTimeOpen, TIME_DOANH_TRAI)) || (isTimePicking && Util.canDoWithTime(lastTimePick, TIME_PICK_DOANH_TRAI))) {
+            finish();
+            dispose();
+            return;
+        }
 
-            boolean allCharactersDead = this.areAllCharactersDead();
-            if (allCharactersDead && !winDT) {
-                winDT = true;
-                for (Zone zone : zones) {
+        boolean allCharactersDead = this.areAllCharactersDead();
+        if (allCharactersDead && !winDT) {
+            winDT = true;
+            for (Zone zone : zones) {
+                if (zone != null) {
                     List<Player> players = zone.getPlayers();
-                    for (Player pl : players) {
-                        Service.gI().sendThongBao(pl, "Mau đi tìm Độc Nhãn");
+                    if (players != null) {
+                        for (Player pl : players) {
+                            if (pl != null) {
+                                Service.gI().sendThongBao(pl, "Mau đi tìm Độc Nhãn");
+                            }
+                        }
                     }
                 }
             }
-
         }
     }
 
@@ -245,37 +257,55 @@ public class RedRibbonHQ extends AbstractClanDungeon {
 
     public void finish() {
         for (Zone zone : zones) {
-            for (int i = zone.getPlayers().size() - 1; i >= 0; i--) {
-                if (i < zone.getPlayers().size()) {
-                    Player pl = zone.getPlayers().get(i);
-                    kickOutOfDT(pl);
+            if (zone != null && zone.getPlayers() != null) {
+                for (int i = zone.getPlayers().size() - 1; i >= 0; i--) {
+                    if (i < zone.getPlayers().size()) {
+                        Player pl = zone.getPlayers().get(i);
+                        if (pl != null) {
+                            kickOutOfDT(pl);
+                        }
+                    }
                 }
             }
         }
     }
 
     private void kickOutOfDT(Player player) {
-        if (MapService.gI().isMapDoanhTrai(player.zone.map.mapId)) {
-            Service.gI().sendThongBao(player, "Đã hết thời gian, bạn sẽ được đưa về nhà");
-            ChangeMapService.gI().changeMapBySpaceShip(player, 21 + player.gender, -1, -1);
+        if (player != null && player.zone != null && player.zone.map != null) {
+            if (MapService.gI().isMapDoanhTrai(player.zone.map.mapId)) {
+                Service.gI().sendThongBao(player, "Đã hết thời gian, bạn sẽ được đưa về nhà");
+                ChangeMapService.gI().changeMapBySpaceShip(player, 21 + player.gender, -1, -1);
+            }
         }
     }
 
     private void sendTextDoanhTrai() {
-        for (Player pl : this.clan.membersInGame) {
-            ItemTimeService.gI().sendTextDoanhTrai(pl);
+        if (this.clan != null && this.clan.membersInGame != null) {
+            for (Player pl : this.clan.membersInGame) {
+                if (pl != null) {
+                    ItemTimeService.gI().sendTextDoanhTrai(pl);
+                }
+            }
         }
     }
 
     public void sendTextTimePickDoanhTrai() {
-        for (Player pl : this.clan.membersInGame) {
-            ItemTimeService.gI().sendTextTimePickDoanhTrai(pl);
+        if (this.clan != null && this.clan.membersInGame != null) {
+            for (Player pl : this.clan.membersInGame) {
+                if (pl != null) {
+                    ItemTimeService.gI().sendTextTimePickDoanhTrai(pl);
+                }
+            }
         }
     }
 
     private void removeTextDoanhTrai() {
-        for (Player pl : this.clan.membersInGame) {
-            ItemTimeService.gI().removeTextDoanhTrai(pl);
+        if (this.clan != null && this.clan.membersInGame != null) {
+            for (Player pl : this.clan.membersInGame) {
+                if (pl != null) {
+                    ItemTimeService.gI().removeTextDoanhTrai(pl);
+                }
+            }
         }
     }
 
@@ -306,10 +336,11 @@ public class RedRibbonHQ extends AbstractClanDungeon {
         long dame = totalHp / 20;
         long hp = totalDame * 50;
         for (Boss boss : bosses) {
-            if (boss.isDie()) {
+            if (boss == null || boss.isDie() || boss.zone == null || boss.zone.map == null) {
                 continue;
             }
-            if (boss.zone.map.mapId == 59) {
+            int mapId = boss.zone.map.mapId;
+            if (mapId == 59) {
                 try {
                     long bossDamage = (dame);
                     long bossMaxHealth = (hp);
@@ -320,8 +351,7 @@ public class RedRibbonHQ extends AbstractClanDungeon {
                     boss.nPoint.hp = boss.nPoint.hpMax;
                 } catch (Exception exception) {
                 }
-            }
-            if (boss.zone.map.mapId == 62) {
+            } else if (mapId == 62) {
                 try {
                     long bossDamage = (long) (dame * 1.1);
                     long bossMaxHealth = (long) (hp * 1.1);
@@ -332,8 +362,7 @@ public class RedRibbonHQ extends AbstractClanDungeon {
                     boss.nPoint.hp = boss.nPoint.hpMax;
                 } catch (Exception exception) {
                 }
-            }
-            if (boss.zone.map.mapId == 55) {
+            } else if (mapId == 55) {
                 try {
                     long bossDamage = (long) (dame * 1.15);
                     long bossMaxHealth = (long) (hp * 1.15);
@@ -344,8 +373,7 @@ public class RedRibbonHQ extends AbstractClanDungeon {
                     boss.nPoint.hp = boss.nPoint.hpMax;
                 } catch (Exception exception) {
                 }
-            }
-            if (boss.zone.map.mapId == 54) {
+            } else if (mapId == 54) {
                 try {
                     long bossDamage = (long) (dame * 1.2);
                     long bossMaxHealth = (long) (hp * 1.2);
@@ -360,9 +388,7 @@ public class RedRibbonHQ extends AbstractClanDungeon {
                     boss.nPoint.hp = boss.nPoint.hpMax;
                 } catch (Exception exception) {
                 }
-            }
-
-            if (boss.zone.map.mapId == 57) {
+            } else if (mapId == 57) {
                 try {
                     long bossDamage = (long) (dame * 1.3);
                     long bossMaxHealth = (long) (hp * 1.3);
@@ -379,23 +405,28 @@ public class RedRibbonHQ extends AbstractClanDungeon {
     }
 
     private void dispose() {
-        this.removeTextDoanhTrai();
-        // remove bosses
-        for (Boss boss : bosses) {
-            if (boss != null && !boss.isDie()) {
-                boss.leaveMap();
-            }
-        }
-        // remove itemmap
-        this.clearAllItems();
-        this.bosses.clear();
-        this.winDT = false;
         this.isOpened = false;
-        if (this.clan != null) {
-            this.clan.haveGoneDoanhTrai = true;
-            this.clan.doanhTrai = null;
-            this.clan = null;
+        try {
+            this.removeTextDoanhTrai();
+            // remove bosses
+            for (Boss boss : bosses) {
+                if (boss != null && boss.zone != null) {
+                    boss.leaveMap();
+                }
+            }
+            // remove itemmap
+            this.clearAllItems();
+            this.bosses.clear();
+            this.winDT = false;
+        } catch (Exception e) {
+            nro.models.utils.Logger.logException(RedRibbonHQ.class, e);
+        } finally {
+            if (this.clan != null) {
+                this.clan.haveGoneDoanhTrai = true;
+                this.clan.doanhTrai = null;
+                this.clan = null;
+            }
+            this.isTimePicking = false;
         }
-        this.isTimePicking = false;
     }
 }
