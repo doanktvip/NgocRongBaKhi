@@ -1,4 +1,4 @@
-package nro.models.map.phoban;
+package nro.models.map.timed_map;
 
 
 
@@ -7,7 +7,6 @@ import nro.models.database.MrBlue;
 import nro.models.database.PlayerDAO;
 import java.util.List;
 import java.util.ArrayList;
-import java.util.concurrent.Executors;
 import nro.models.player.Player;
 import nro.models.map.service.MapService;
 import nro.models.services.Service;
@@ -20,6 +19,7 @@ import lombok.Data;
 import nro.models.map.Zone;
 import nro.models.server.Client;
 import nro.models.server.Maintenance;
+import nro.models.map.timed_map.TimedMapManager;
 
 @Data
 public class BlackBallWar implements Runnable {
@@ -143,13 +143,7 @@ public class BlackBallWar implements Runnable {
     }
 
     private void kickOutOfMap(Player player) {
-        if (player.cFlag == 8) {
-            Service.gI().changeFlag(player, Util.nextInt(1, 7));
-        }
-
-        Service.gI().sendThongBao(player, "Trò chơi tìm ngọc hôm nay đã kết thúc, hẹn gặp lại vào 20h ngày mai");
-
-        ChangeMapService.gI().changeMapBySpaceShip(player, player.gender + 24, -1, 250);
+        TimedMapManager.gI().checkAndKickIfClosed(player);
     }
 
     private void kickAllPlayersOutOfMap(Zone zone) {

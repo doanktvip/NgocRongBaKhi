@@ -11,7 +11,7 @@ import nro.models.player.Player;
 import nro.models.services.PlayerService;
 import nro.models.services.Service;
 import nro.models.services.SkillService;
-import nro.models.services_func.EffectMapService;
+import nro.models.map.service.EffectMapService;
 import nro.models.skill.PlayerSkill;
 import nro.models.skill.Skill;
 import nro.models.utils.Logger;

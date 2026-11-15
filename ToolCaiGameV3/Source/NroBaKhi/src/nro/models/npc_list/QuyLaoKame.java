@@ -3,7 +3,7 @@ package nro.models.npc_list;
 import nro.models.consts.ConstNpc;
 import nro.models.item.Item;
 import nro.models.map.phoban.BanDoKhoBau;
-import nro.models.services_dungeon.TreasureUnderSeaService;
+import nro.models.map.phoban.TreasureUnderSeaService;
 import nro.models.npc.Npc;
 import static nro.models.npc.NpcFactory.PLAYERID_OBJECT;
 import nro.models.player.Player;

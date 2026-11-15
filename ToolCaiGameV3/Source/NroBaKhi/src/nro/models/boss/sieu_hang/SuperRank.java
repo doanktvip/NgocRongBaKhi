@@ -18,6 +18,7 @@ import nro.models.services_func.UseItem;
 import nro.models.utils.SkillUtil;
 import nro.models.utils.Util;
 import nro.models.skill.Skill;
+import nro.models.map.MaBuHold;
 
 public abstract class SuperRank extends Boss {
 

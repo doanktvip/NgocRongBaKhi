@@ -1,6 +1,5 @@
-package nro.models.services_dungeon;
+package nro.models.map.phoban;
 
-import nro.models.map.phoban.DestronGas;
 import nro.models.clan.Clan;
 import nro.models.clan.ClanMember;
 import java.util.ArrayList;
@@ -11,11 +10,8 @@ import nro.models.services.Service;
 import nro.models.utils.Util;
 
 /**
- *
- * @author By Mr Blue
- * 
+ * Service quản lý hoạt động Khí Gas Hủy Diệt (DestronGas)
  */
-
 public class DestronGasService {
 
     private static DestronGasService instance;

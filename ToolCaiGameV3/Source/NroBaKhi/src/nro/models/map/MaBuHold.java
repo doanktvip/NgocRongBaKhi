@@ -1,4 +1,5 @@
 package nro.models.map;
+
 import nro.models.player.Player;
 
 public class MaBuHold {

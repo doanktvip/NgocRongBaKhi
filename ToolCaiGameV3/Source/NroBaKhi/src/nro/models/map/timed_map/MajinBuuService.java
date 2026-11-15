@@ -1,4 +1,4 @@
-package nro.models.services_dungeon;
+package nro.models.map.timed_map;
 
 import nro.models.consts.ConstNpc;
 import nro.models.player.Player;
@@ -13,11 +13,8 @@ import nro.models.map.service.NpcService;
 import nro.models.utils.TimeUtil;
 
 /**
- *
- * @author By Mr Blue
- * 
+ * Service quản lý toàn diện Map và Hoạt động Mabư 12h (114, 115, 117, 118, 119, 120)
  */
-
 public class MajinBuuService {
 
     public static byte HOUR_OPEN_MAP_MABU = 12;
@@ -33,6 +30,9 @@ public class MajinBuuService {
     }
 
     public Npc getNpcOsin(Player player) {
+        if (player.zone == null || player.zone.map == null) {
+            return null;
+        }
         for (Npc npc : player.zone.map.npcs) {
             if (npc.tempId == 44) {
                 return npc;
@@ -42,6 +42,9 @@ public class MajinBuuService {
     }
 
     public Npc getNpcBabiday(Player player) {
+        if (player.zone == null || player.zone.map == null) {
+            return null;
+        }
         for (Npc npc : player.zone.map.npcs) {
             if (npc.tempId == 46) {
                 return npc;
@@ -51,6 +54,9 @@ public class MajinBuuService {
     }
 
     public Npc getNpcBabiday(Zone zone) {
+        if (zone == null || zone.map == null) {
+            return null;
+        }
         for (Npc npc : zone.map.npcs) {
             if (npc.tempId == 46) {
                 return npc;
@@ -100,27 +106,27 @@ public class MajinBuuService {
     public void update(Player player) {
         if (player.zone != null && player.isPl() && MapService.gI().isMapMaBu(player.zone.map.mapId)) {
             try {
-                goHome(player);
-                if (!TimeUtil.isMabuOpen()) {
-                    if (!player.goHome && !player.isAdmin()) {
-                        player.goHome = true;
-                        player.timeGohome = 30;
-                    }
+                if (TimedMapManager.gI().checkAndKickIfClosed(player)) {
                     return;
                 }
                 if (Util.isTrue(1, 100) && player.cFlag == 9) {
-                    getNpcBabiday(player).npcChat(player.zone, "Úm bala xì bùa " + player.name);
-                    Service.gI().sendThongBao(player, "Bạn đã bị Babiđây thôi miên");
-                    Service.gI().changeFlag(player, 10);
+                    Npc babiday = getNpcBabiday(player);
+                    if (babiday != null) {
+                        babiday.npcChat(player.zone, "Úm bala xì bùa " + player.name);
+                        Service.gI().sendThongBao(player, "Bạn đã bị Babiđây thôi miên");
+                        Service.gI().changeFlag(player, 10);
+                    }
                 }
                 if (Util.isTrue(1, 50) && player.cFlag == 10) {
-                    getNpcOsin(player).npcChat(player.zone, "Úm bala xì bùa hóa giải cho " + player.name);
-                    Service.gI().sendThongBao(player, "Bạn đã được Ôsin giải bùa mê");
-                    Service.gI().changeFlag(player, 9);
+                    Npc osin = getNpcOsin(player);
+                    if (osin != null) {
+                        osin.npcChat(player.zone, "Úm bala xì bùa hóa giải cho " + player.name);
+                        Service.gI().sendThongBao(player, "Bạn đã được Ôsin giải bùa mê");
+                        Service.gI().changeFlag(player, 9);
+                    }
                 }
             } catch (Exception ignored) {
             }
         }
-
     }
 }

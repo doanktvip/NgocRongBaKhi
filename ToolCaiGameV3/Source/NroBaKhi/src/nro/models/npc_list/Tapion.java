@@ -31,11 +31,9 @@ public class Tapion extends Npc {
             switch (select) {
                 case 0 -> {
                     if (mapId == 19) {
-                        Calendar calendar = Calendar.getInstance();
-                        int hour = calendar.get(Calendar.HOUR_OF_DAY);
-                        if (hour >= 1 && hour < 23) {
+                        if (TimeUtil.isHirudegarnOpen()) {
                             ChangeMapService.gI().changeMapNonSpaceship(player, 126, 200 + Util.nextInt(-100, 100), 360);
-                        }else{
+                        } else {
                             Service.gI().sendThongBao(player, "Vui lòng quay lại vào lúc 22h");
                         }
                     } else if (mapId == 126) {

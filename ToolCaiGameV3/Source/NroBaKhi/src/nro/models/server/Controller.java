@@ -41,7 +41,7 @@ import nro.models.shop.ShopService;
 import nro.models.interfaces.IMessageHandler;
 import nro.models.network.Message;
 import nro.models.interfaces.ISession;
-import nro.models.services_dungeon.BlackBallWarService;
+import nro.models.map.timed_map.BlackBallWarService;
 import nro.models.matches.dai_hoi_vo_thuat.SuperRankService;
 import nro.models.services_dungeon.TrainingService;
 import nro.models.map.service.MapService;

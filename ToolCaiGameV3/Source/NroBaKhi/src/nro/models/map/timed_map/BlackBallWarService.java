@@ -1,15 +1,14 @@
-package nro.models.services_dungeon;
+package nro.models.map.timed_map;
 
-import nro.models.map.phoban.BlackBallWar;
 import nro.models.item.Item;
 import java.util.ArrayList;
 import java.util.List;
-import static nro.models.map.phoban.BlackBallWar.COST_X3;
-import static nro.models.map.phoban.BlackBallWar.COST_X5;
-import static nro.models.map.phoban.BlackBallWar.COST_X7;
-import static nro.models.map.phoban.BlackBallWar.X3;
-import static nro.models.map.phoban.BlackBallWar.X5;
-import static nro.models.map.phoban.BlackBallWar.X7;
+import static nro.models.map.timed_map.BlackBallWar.COST_X3;
+import static nro.models.map.timed_map.BlackBallWar.COST_X5;
+import static nro.models.map.timed_map.BlackBallWar.COST_X7;
+import static nro.models.map.timed_map.BlackBallWar.X3;
+import static nro.models.map.timed_map.BlackBallWar.X5;
+import static nro.models.map.timed_map.BlackBallWar.X7;
 import nro.models.map.ItemMap;
 import nro.models.map.Zone;
 import nro.models.player.Player;
@@ -20,11 +19,8 @@ import nro.models.utils.TimeUtil;
 import nro.models.utils.Util;
 
 /**
- *
- * @author By Mr Blue
- * 
+ * Service quản lý toàn diện Map và Hoạt động Sao Đen (Map 85..91)
  */
-
 public class BlackBallWarService {
 
     private static BlackBallWarService instance;

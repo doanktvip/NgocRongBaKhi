@@ -73,19 +73,21 @@ public class MapService {
     //tilemap for paint
     public int[][] readTileMap(int mapId) {
         int[][] tileMap = null;
-        try {
-            DataInputStream dis = new DataInputStream(new FileInputStream("data/map/tile_map_data/" + mapId));
-            dis.readByte();
-            int w = dis.readByte();
-            int h = dis.readByte();
+        java.io.File file = new java.io.File("data/map/tile_map_data/" + mapId);
+        if (!file.exists()) {
+            return null;
+        }
+        try (DataInputStream dis = new DataInputStream(new FileInputStream(file))) {
+            int w = dis.readUnsignedByte();
+            int h = dis.readUnsignedByte();
             tileMap = new int[h][w];
             for (int i = 0; i < tileMap.length; i++) {
                 for (int j = 0; j < tileMap[i].length; j++) {
-                    tileMap[i][j] = dis.readByte();
+                    tileMap[i][j] = dis.readUnsignedByte();
                 }
             }
-            dis.close();
         } catch (Exception e) {
+            Logger.logException(MapService.class, e, "Lỗi đọc tile_map_data: " + mapId);
         }
         return tileMap;
     }
@@ -197,16 +199,29 @@ public class MapService {
             return null;
         }
 
-        List<Zone> availableZones = new ArrayList<>();
+        Zone leastLoadedZone = null;
+        int minPlayers = Integer.MAX_VALUE;
+
         for (Zone zone : map.zones) {
-            if (zone != null && !zone.isFullPlayer()) {
-                availableZones.add(zone);
+            if (zone == null) {
+                continue;
+            }
+            int count = zone.getNumOfPlayers();
+            int threshold = Math.max(1, (zone.maxPlayer * 2 + 1) / 3); // Tương đương Math.round(maxPlayer * 0.66f)
+
+            // BƯỚC 1: Ưu tiên rót từ Khu 0 trở đi nếu chưa chạm ngưỡng ~66% (Early Return ngay lập tức)
+            if (count < threshold) {
+                return zone;
+            }
+
+            // BƯỚC 2 & 3 (Gộp chung): Ghi nhận khu có số người ít nhất trong cùng 1 lần duyệt O(N)
+            if (count < minPlayers) {
+                minPlayers = count;
+                leastLoadedZone = zone;
             }
         }
-        if (!availableZones.isEmpty()) {
-            return availableZones.get(Util.nextInt(0, availableZones.size() - 1));
-        }
-        return map.zones.get(0);
+
+        return leastLoadedZone != null ? leastLoadedZone : map.zones.get(0);
     }
 
     public Zone getZoneByMapIDAndZoneID(int mapId, int zoneId) {
@@ -357,7 +372,7 @@ public class MapService {
     }
 
     public boolean isMapMaBu(int mapId) {
-        return mapId >= 114 && mapId <= 120;
+        return mapId >= 114 && mapId <= 120 && mapId != 116;
     }
 
     public boolean isHome(int mapId) {
@@ -369,7 +384,7 @@ public class MapService {
     }
     
     public boolean isMapCadic(int mapId) {
-        return mapId >= 165;
+        return mapId == 165;
     }
 
     public boolean isMapBossFinal(int mapId) {
@@ -381,13 +396,12 @@ public class MapService {
     }
 
     public boolean isMapTuongLai(Map map) {
-        int mapId = map.mapId;
-        return mapId >= 92 && mapId <= 103;
+        return map != null && isMapTuongLai(map.mapId);
     }
 
     public boolean isMapCold(int mapId) {
-        return (mapId >= 105 && mapId <= 110) || mapId == 152;
-    }
+    return mapId >= 105 && mapId <= 110;
+}
 
     public boolean isMapDoanhTrai(int mapId) {
         return mapId >= 53 && mapId <= 62;
@@ -443,22 +457,16 @@ public class MapService {
         return isMapBanDoKhoBau(mapId) || isMapDoanhTrai(mapId) || isMapConDuongRanDoc(mapId) || isMapKhiGasHuyDiet(mapId);
     }
 
-    public boolean isskh(int mapId) {
-        return (mapId >= 1 && mapId <= 3)
-                || (mapId >= 8 && mapId <= 11)
-                || mapId == 15 || mapId == 17;
-    }
-
     public boolean isMapTuongLai(int mapId) {
         return (mapId >= 92 && mapId <= 94)
                 || (mapId >= 96 && mapId <= 100)
                 || mapId == 102 || mapId == 103;
     }
-
+    // Chưa được dùng
     public boolean isMapEvent8_3(int mapId) {
         return mapId >= 5 && mapId <= 110;
     }
-
+    // Chưa được dùng
     public boolean isMapEventHungVuong(int mapId) {
         return mapId >= 1 && mapId <= 163;
     }
@@ -474,7 +482,7 @@ public class MapService {
     }
 
     public boolean isMapUpPorata(int mapId) {
-        return mapId == 156 || mapId == 157 || mapId == 158 || mapId == 159;
+        return mapId >= 156 && mapId <= 159;
     }
 
     public boolean isMapLuyenTap(int mapId) {
@@ -482,18 +490,14 @@ public class MapService {
     }
 
     public boolean isMapNappa(int mapId) {
-        return mapId >= 63 && mapId <= 83;
+        return mapId >= 63 && mapId <= 83 && mapId != 78;
     }
-
-    public boolean isMapStar(int mapId) {
-        return mapId >= 63 && mapId <= 83;
-    }
-
+    //Chưa được dùng
     public boolean isMapEventHalloween(int mapId) {
         return mapId == 174 || mapId == 179 || mapId == 180 || mapId == 181 || mapId == 168;
     }
-
-    public boolean isMapEvent1(int mapId) {
+    //Chưa được dùng
+    public boolean isMapLang(int mapId) {
         return mapId == 0 || mapId == 7 || mapId == 14;
     }
 

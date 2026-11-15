@@ -1,4 +1,4 @@
-package nro.models.services_func;
+package nro.models.map.service;
 
 import nro.models.map.Zone;
 import nro.models.player.Player;
@@ -6,11 +6,8 @@ import nro.models.network.Message;
 import nro.models.services.Service;
 
 /**
- *
- * @author By Mr Blue
- * 
+ * Service quản lý hiệu ứng thời tiết, bão tuyết, mưa, lá bay trên Map
  */
-
 public class EffectMapService {
 
     private static EffectMapService i;

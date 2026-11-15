@@ -15,7 +15,7 @@ import nro.models.services.Service;
 import nro.models.utils.Util;
 import java.util.ArrayList;
 import java.util.List;
-import nro.models.services_dungeon.MajinBuuService;
+import nro.models.map.timed_map.MajinBuuService;
 import nro.models.services.EffectSkillService;
 import nro.models.services.ItemTimeService;
 import nro.models.services.SkillService;

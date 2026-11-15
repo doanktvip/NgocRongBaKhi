@@ -1,8 +1,7 @@
-package nro.models.services_dungeon;
+package nro.models.map.timed_map;
 
 import java.util.ArrayList;
 import java.util.List;
-import nro.models.map.phoban.MajinBuu14H;
 import nro.models.map.Zone;
 import nro.models.map.MaBuHold;
 import nro.models.player.Player;
@@ -10,11 +9,8 @@ import nro.models.map.service.MapService;
 import nro.models.map.service.ChangeMapService;
 
 /**
- *
- * @author By Mr Blue
- * 
+ * Service quản lý toàn diện Map và Hoạt động Mabư 14h (Map 127, 128)
  */
-
 public class MajinBuu14HService {
 
     private static MajinBuu14HService instance;
@@ -41,7 +37,9 @@ public class MajinBuu14HService {
                 zone.maBuHolds.add(new MaBuHold(slot, null));
             }
         }
-        this.maBu2Hs.get(id).getZones().add(zone);
+        if (id < this.maBu2Hs.size()) {
+            this.maBu2Hs.get(id).getZones().add(zone);
+        }
     }
 
     public void joinMaBu2H(Player player) {
@@ -55,5 +53,4 @@ public class MajinBuu14HService {
         }
         ChangeMapService.gI().changeMap(player, MapService.gI().getMapWithRandZone(127), -1, 312);
     }
-
 }

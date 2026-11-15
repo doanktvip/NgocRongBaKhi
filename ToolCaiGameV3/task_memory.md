@@ -17,6 +17,7 @@
   * `CODEBASE_MAP.md`: Bản đồ 57 packages (543 file Java), 33 file PHP và chỉ mục dòng (`L...–L...`) của các class lớn.
   * `DB_JSON_SCHEMA.md`: Đặc tả 43 bảng SQL và thứ tự index `[0]..[N]` của 39 cột mảng JSON trong bảng `player` & `clan`.
   * `PACKET_PROTOCOL.md`: Đặc tả 58 mã lệnh mạng (`cmd`) trong `Controller.java`.
+* **Điều Phối Nhịp Game Loop (Zone.update())**: Bộ lập lịch tập trung nằm duy nhất tại `Manager.initMap()` (`Manager.java` L199–L242), gom các Zone theo batch 10 khu và cập nhật 1 giây/lần bằng `CompletionService` đa luồng. **TUYỆT ĐỐI KHÔNG gọi `map.run()`** trong vòng đời server để tránh chạy đúp luồng `zone.update()`.
 
 ---
 
@@ -47,7 +48,102 @@
 
 ## 4. Lịch Sử Thực Thi Gần Nhất (Completed Tasks Log)
 
-* **[Refactor Hệ Thống Map — Hoàn Thành Toàn Bộ 4 Giai Đoạn Đạt Chuẩn 10/10]**:
+* **[Quy Hoạch Toàn Diện Hệ Thống Map: Đồng Bộ phoban & map.service]**:
+  * **Đóng gói trọn gói Phó bản bang hội (`nro.models.map.phoban`)**:
+    - Chuyển 4 Service phó bản (`TreasureUnderSeaService`, `DestronGasService`, `RedRibbonHQService`, `SnakeWayService`) từ `services_dungeon` sang `nro.models.map.phoban`.
+    - Thư mục `phoban` hiện tại đóng gói trọn gói 100% cả Model lẫn Service của 4 phó bản (`BanDoKhoBau`, `DestronGas`, `RedRibbonHQ`, `SnakeWay`).
+  * **Quy tụ Dịch vụ Bản đồ (`nro.models.map.service`)**:
+    - Chuyển `EffectMapService.java` (hiệu ứng thời tiết/bão trên map) từ `services_func` sang `nro.models.map.service` (đứng chung cùng `MapService`, `ChangeMapService`, `ItemMapService`, `NpcService`).
+  * **Đồng bộ mã nguồn**: Cập nhật sạch sẽ imports trong `BotAttackplayer.java`, `Map.java`, `TrapMap.java`, `LinhCanh.java`, `MrPoPo.java`, `QuyLaoKame.java`, `ThanVuTru.java`, `SkillService.java`.
+  * **Biên dịch**: `javac` biên dịch mới 100% thành công không có bất kỳ lỗi nào vào `build/classes`.
+
+* **[Đóng Gói Module Trọn Gói timed_map: Vừa Quản Lý Map Vừa Quản Lý Hoạt Động]**:
+  * **Kiến trúc Feature Module tập trung**:
+    - Thư mục `nro.models.map.timed_map` trở thành module độc lập trọn gói cho toàn bộ 16 Map mở theo giờ, tích hợp cả vòng đời Map lẫn logic nghiệp vụ hoạt động của người chơi:
+      1. `TimedMapManager.java`: Tổng điều phối trung tâm toàn bộ 16 Map (mở/đóng cửa, kiểm tra & trục xuất tức thì).
+      2. `BlackBallWarService.java` & `BlackBallWar.java`: Trọn gói sự kiện Sao Đen 20h–21h (Maps 85..91: zones, giữ ngọc 300s, rơi ngọc, nhận thưởng bang).
+      3. `MajinBuu14HService.java` & `MajinBuu14H.java`: Trọn gói sự kiện Mabư 14h–15h (Maps 127..128: 7 phòng, cột trói MaBuHold).
+      4. `MajinBuuService.java`: Trọn gói sự kiện Mabư 12h–13h (Maps 114..120: các tầng ải, diệt Mabư, Babiđây thôi miên & Ôsin giải bùa).
+    - Map 126 (Hirudegarn 22h–23h): Là map Boss thế giới thông thường, được điều phối trực tiếp bởi `TimedMapManager` và NPC `Tapion`, không sinh thêm class/thread thừa thãi.
+    - Đã dọn dẹp triệt để các file thừa (`HirudegarnWar.java`, `MajinBuu12H.java`).
+  * **Đồng bộ hóa**: Cập nhật sạch sẽ imports trên toàn bộ server (`Map`, `Zone`, `Player`, `Mabu`, `ChangeMapService`, `Osin`, `Rong1Sao`, `Controller`, `InventoryService`, `TimeUtil`).
+  * **Biên dịch**: `javac` biên dịch mới 100% thành công không có bất kỳ lỗi nào vào `build/classes`.
+
+* **[Khởi Tạo TimedMapManager & Chuẩn Hóa Cơ Chế Trục Xuất 16 Map Mở Theo Giờ]**:
+  * **Kiến trúc mới**: Tạo package mới `nro.models.map.timed_map` và lớp điều phối tập trung `TimedMapManager.java` quản lý toàn bộ 16 Map mở theo giờ (Mabu 12h: `114..120`, Mabu 14h: `127, 128`, Sao Đen 20h: `85..91`, Hirudegarn 22h: `126`).
+  * **Hành vi thống nhất**:
+    - Khi người chơi vào map hoặc đang đứng trong map ngoài khung giờ mở: Lập tức gửi thông báo popup/chat màu đỏ chính xác thời gian mở tiếp theo và trục xuất người chơi bằng phi thuyền về khu an toàn (Nhà / Trạm tàu / Thành phố Vegeta).
+    - Cờ `ALLOW_ADMIN_STAY = false` áp dụng chuẩn xác cho cả Admin để kiểm tra tính năng trực tiếp.
+  * **Đồng bộ hóa các file**:
+    - `TimeUtil.java`: Thêm hàm `isHirudegarnOpen()` (`hour >= 22 && hour < 23`).
+    - `Tapion.java`: Sửa điều kiện vào Map 126 dùng `TimeUtil.isHirudegarnOpen()`, loại bỏ bug mở từ 1h-23h.
+    - `ChangeMapService.java`: Tích hợp `TimedMapManager.gI().checkAndKickIfClosed(player)` tại `finishLoadMap` để chặn ngay khi người chơi vừa đổi map vào (kể cả dùng lệnh admin `m...`).
+    - `Player.java`: Tích hợp `checkAndKickIfClosed(this)` trong nhịp `update()` 1 giây để trục xuất tự động khi đồng hồ điểm hết giờ sự kiện.
+    - `MajinBuuService.java` & `MajinBuu14H.java` & `BlackBallWar.java`: Ủy quyền toàn bộ cơ chế trục xuất về `TimedMapManager`, loại bỏ đoạn đếm ngược 30 giây rườm rà.
+  * **Biên dịch**: `javac` biên dịch mới 100% không lỗi vào `build/classes`.
+
+* **[Cập Nhật Thời Gian Mở Cửa Mabu 14h Trong TimeUtil.java]**:
+  * **Thay đổi**: Sửa hàm `TimeUtil.isMabu14HOpen()` từ khung giờ cũ `hour >= 22 && hour < 23` (22h) trở về chuẩn **14h00 – 15h00** (`hour >= 14 && hour < 15`) theo đúng tên gọi và yêu cầu của người dùng.
+  * **Biên dịch**: `javac` biên dịch mới 100% không lỗi vào `build/classes`.
+
+* **[Dọn Dẹp Dead Code isskh Trong MapService.java]**:
+  * **Thay đổi**: Đã xóa bỏ hàm chết/trùng lặp `isskh(int mapId)` tại dòng 460 của `MapService.java` vì hoàn toàn không có nơi nào trong toàn bộ dự án gọi tới. Logic chuẩn rơi trang bị Kích Hoạt (SKH) của 3 hành tinh (`1, 2, 3`, `8, 9, 11`, `15, 16, 17`) đã được đảm nhiệm thống nhất bởi `isMapUpSKH(int mapId)` trong `Mob.java`.
+  * **Biên dịch**: `javac` biên dịch mới 100% không lỗi vào `build/classes`.
+
+* **[Rút Gọn & Tối Ưu isMapUpPorata Trong MapService.java]**:
+  * **Thay đổi**: Chuyển `mapId == 156 || mapId == 157 || mapId == 158 || mapId == 159` thành dạng khoảng liên tục `mapId >= 156 && mapId <= 159` (4 map Thánh địa Kaio Đông, Tây, Nam, Bắc up Bông tai Porata cấp 2).
+  * **Biên dịch**: `javac` biên dịch mới 100% không lỗi vào `build/classes`.
+
+* **[Đồng Bộ Hóa Hàm isMapTuongLai & Loại Bỏ Map 95, 101]**:
+  * **Vấn đề**: Hàm `isMapTuongLai(Map map)` ở dòng 398 viết lười `mapId >= 92 && mapId <= 103` vô tình tính cả Map 95 và 101 (2 map rỗng/dummy không thuộc thế giới Tương Lai), lệch pha với hàm `isMapTuongLai(int mapId)` ở dòng 467.
+  * **Khắc phục**: Sửa dòng 398 ủy quyền trực tiếp `return map != null && isMapTuongLai(map.mapId);` theo chuẩn DRY, loại trừ triệt để 95 và 101.
+  * **Biên dịch**: Đóng gói thành công `NroBaKhi.jar` (`[COMPILE_SUCCESS]`).
+
+* **[Sửa Lỗi Logic isMapMaBu Trong MapService.java]**:
+  * **Vấn đề**: Hàm `MapService.isMapMaBu(int mapId)` trước đây viết `mapId >= 114 && mapId <= 120` đã vô tình tính luôn Map 116 (Thánh địa Kaio). Dẫn tới người chơi vào Map 116 bị ép cờ PK Ma Bử, điểm danh sự kiện, chết hồi sinh về Map 114, hoặc bị chặn capsule/dịch chuyển bạn bè.
+  * **Khắc phục**: Sửa thành `return mapId >= 114 && mapId <= 120 && mapId != 116;` (chỉ gồm đúng 6 map Ma Bử 12h: 114, 115, 117, 118, 119, 120).
+  * **Biên dịch**: `javac` biên dịch thành công 100% không lỗi vào `build/classes`.
+
+* **[Sửa Triệt Để Lỗi NPE yPhysicInTop Khi Vào Map 116 & Bù Đầy Đủ Dữ Liệu TileMap]**:
+  * **Nguyên nhân gốc rễ**: 
+    - Map 114 (Cổng phi thuyền) và Map 115 (Phòng chờ) thuộc sự kiện Ma Bử 12h. Map tiếp theo của chuỗi Ma Bử trong NRO là **Map 117 (Cửa ải 1)**, **Map 118**, **Map 119**, **Map 120** (bỏ qua ID 116).
+    - Map 116 trong CSDL (`map_template`) là "Thánh địa Kaio" (nhân bản từ Map 50, `tile_id = 10`), nhưng thư mục `data/map/tile_map_data/` bị thiếu file `116` (và cả file `78`).
+    - Khi server nạp Map 116, do thiếu file trên đĩa cứng nên `this.tileMap` bị `null`. Khi Admin gõ lệnh `m116`, hàm `Map.yPhysicInTop()` gọi `tileMap[0].length` gây `java.lang.NullPointerException`.
+  * **Giải pháp khắc phục**:
+    - Khởi tạo file dữ liệu nhị phân `data/map/tile_map_data/116` (sao chép chuẩn từ `tile_map_data/50` cùng `tile_id = 10`) và `data/map/tile_map_data/78` (từ `tile_map_data/0`). Kiểm tra lại 100% (172/172) map trong DB đều đã có đầy đủ `tile_map_data`.
+    - Bổ sung chốt chặn an toàn phòng thủ `if (tileMap == null || tileMap.length == 0 || tileMap[0] == null) return y;` trong [Map.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/map/Map.java#L398) tại `yPhysicInTop()`, `moveXY()`, và khởi tạo `this.tileMap` khi nạp từ file trong `readTileMap()`.
+    - Tối ưu [Manager.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/server/Manager.java#L1119): Kiểm tra `file.exists()`, dùng `readUnsignedByte()` và bắt lỗi có log tránh ngoại lệ `FileNotFoundException`.
+    - Đã chạy kiểm tra biên dịch tự động thành công 100% (`[COMPILE_SUCCESS]`), đóng gói sạch vào `NroBaKhi.jar`.
+
+* **[Tối Ưu Single-Pass O(N) Thuật Toán Phân Bổ Khu & Đồng Bộ ChangeMapService]**:
+  * **Tối ưu `MapService.getZone(mapId)`**:
+    - Chuyển đổi từ thuật toán 3 vòng lặp ($O(3N)$) sang **1 vòng lặp duy nhất ($O(N)$ Single-Pass)**: Kết hợp kiểm tra ngưỡng $\approx 66\%$ (Early Return rót từ Khu 0) và theo dõi `leastLoadedZone` (khu có số người ít nhất) ngay trong cùng 1 lần duyệt.
+    - Loại bỏ hoàn toàn phép tính số thực `Math.round(zone.maxPlayer * 0.66f)`, thay bằng phép tính số nguyên `Math.max(1, (zone.maxPlayer * 2 + 1) / 3)` tối ưu chu kỳ CPU.
+    - Lưu biến cục bộ `int count = zone.getNumOfPlayers()` để tránh gọi lặp lại `.size()` trên `CopyOnWriteArrayList` và loại bỏ race condition giữa các luồng.
+  * **Đồng bộ và dọn lỗi `ChangeMapService.getMapCanJoin(player, mapId)`**:
+    - Loại bỏ logic cũ duyệt lặp và trả về `null` khi tất cả các khu đều $\ge 7$ người (gây lỗi cho Đại Hội Võ Thuật và Dịch chuyển Yardrat).
+    - Ủy quyền trực tiếp cho `MapService.gI().getZone(mapId)` với thuật toán Single-Pass chuẩn, bổ sung null-check đầy đủ `player != null && player.zone != null && player.zone.map != null`.
+  * **Kiểm tra biên dịch**: Tất cả các file `.class` đã được `javac` biên dịch mới 100% không lỗi vào `build/classes`.
+
+* **[Triển Khai Thuật Toán Rót Nước Từng Tầng (Waterfall 66%) Cho `MapService.getZone()`]**:
+  * **Vấn đề cũ**: Hàm `getZone(mapId)` trước đây chọn ngẫu nhiên một khu trống, dẫn tới người chơi bị rải rác mỗi người một khu khiến server trông vắng vẻ (Dead Game feel), và khi tất cả các khu đều đầy thì dồn hết người chơi vào Khu 0 gây quá tải cục bộ.
+  * **Thuật toán mới**:
+    - **Bước 1**: Rót lần lượt từ Khu 0 trở đi cho khu đầu tiên có số lượng người `< 66%` dung lượng (`< Math.round(maxPlayer * 0.66f)`, tương đương `< 10/15` người). Giúp 10 người đầu tiên luôn gặp nhau ở Khu 0 tạo không khí nhộn nhịp, đồng thời để lại 33% (5 chỗ trống) cho bạn bè/bang hội đổi khu vào chơi chung.
+    - **Bước 2**: Khi toàn bộ các khu đều đã `>= 66%`, tìm khu chưa đầy 100% (`< maxPlayer`) có số người ít nhất hiện tại (Least Loaded) để rót nốt chỗ trống.
+    - **Bước 3**: Khi toàn bộ các khu đều đã full 100% (`15/15`), tiếp tục đưa vào khu ít người nhất để san sẻ đều tải, triệt tiêu hoàn toàn hiện tượng quá tải ở Khu 0.
+  * Đã kiểm tra biên dịch mã nguồn Java thành công 100% vào `build/classes`. Khi người dùng tắt server đang chạy, script `compile_check.bat` sẽ tự động đóng gói cập nhật vào `NroBaKhi.jar`.
+
+* **[Sửa Lỗi EOFException & Hoàn Thiện Tinh Chỉnh Hệ Thống Map 10/10]**:
+  * **Khắc phục triệt để `java.io.EOFException` trong `readTileMap`**:
+    - Phát hiện và loại bỏ lệnh đọc thừa byte `dis.readByte()` ở đầu file nhị phân `tile_map_data/<mapId>` trong `Map.java` và `MapService.java` (gây lệch byte header `tmw`, `tmh` dẫn tới lỗi EOF khi map có tile[0][0] khác 0 như Map 21, 22, 24, 25, 30, 39, 40, 138, 183).
+    - Tối ưu **0-Disk-Read** cho `Map.readTileMap`: Nạp thẳng ma trận `maps` và kích thước `tmw, tmh, pxw, pxh` từ `this.tileMap` đã có sẵn trên RAM do `Manager.initMap()` nạp vào constructor.
+    - Sửa `MapService.readTileMap` đọc đúng `readUnsignedByte()` và bắt lỗi có ghi log qua `Logger.logException`.
+  * **Hoàn thiện triệt để 4 điểm tinh chỉnh cuối cùng**:
+    - Cả 4 phó bản (`BanDoKhoBau`, `DestronGas`, `RedRibbonHQ`, `SnakeWay`) đã gọi đầy đủ các hàm tiện ích của lớp cha `AbstractClanDungeon`: `areAllCharactersDead()`, `areAllMobsDead()`, `clearAllItems()`, và bọc kiểm tra `if (this.clan != null)` trong `dispose()`.
+    - Sửa tràn số nguyên trong `SnakeWay.init()`: dùng `Math.min((long) level * ..., Integer.MAX_VALUE)`.
+    - Xóa câu lệnh `if` kiểm tra map nhà lặp lồng nhau 2 lần trong `ChangeMapService.finishLoadMap()`.
+    - Bổ sung `Logger.logException` cho các khối catch trong `NpcService.createTutorial()` và các hàm tạo Boss phó bản; xóa import thừa `Executors` trong `BlackBallWar.java`.
+  * Biên dịch ngầm tự động thành công 100% (`[COMPILE_SUCCESS]`), đóng gói sạch vào `NroBaKhi.jar`.
   * **Giai đoạn 1 (Sửa 10 Lỗi Nghiêm Trọng)**: Đã sửa đệ quy vô hạn trong `getAllMaps()`, khử vòng lặp vô hạn `while(true)` gây treo CPU trong `getZone()`, sửa tràn số nguyên sát thương/HP Doanh Trại trong `RedRibbonHQ.updateHPDame()`, bổ sung `break;` trong `ChangeMapService` (capsule & núi khỉ vàng), đồng bộ cờ `isPickedUp` và `AtomicInteger` cho `itemMapId`.
   * **Giai đoạn 2 (Tối Ưu Hiệu Năng & Disk/DB I/O)**: Nạp tài nguyên bản đồ tĩnh (`item_bg_map_data`, `eff_map`) lên RAM 0-disk-read; dùng chung `MAP_SCHEDULER` với chu kỳ 1.000ms; cố định 4 kén `maBuHolds`; đẩy lưu SQL người chơi offline sang Virtual Thread trong `BlackBallWar`.
   * **Giai đoạn 3 (Tái Cấu Trúc OOP & DRY)**: Xây dựng lớp cha trừu tượng [AbstractClanDungeon.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/map/phoban/AbstractClanDungeon.java); 4 phó bản kế thừa; rút gọn 155 dòng trùng lặp trong `MapService.getMapCanJoin()` qua `isZoneCleared()` và `resolveDungeonTransition()`.

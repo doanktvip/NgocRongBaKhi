@@ -6,7 +6,7 @@ import nro.models.npc.NonInteractiveNPC;
 import nro.models.radar.Card;
 import nro.models.radar.RadarCard;
 import nro.models.services.RadarService;
-import nro.models.services_dungeon.MajinBuuService;
+import nro.models.map.timed_map.MajinBuuService;
 import nro.models.skill.PlayerSkill;
 import java.util.List;
 import nro.models.clan.Clan;
@@ -28,6 +28,7 @@ import nro.models.skill.Skill;
 import nro.models.services.Service;
 import nro.models.network.MySession;
 import nro.models.task.TaskPlayer;
+import nro.models.map.timed_map.TimedMapManager;
 import nro.models.network.Message;
 import nro.models.server.Client;
 import nro.models.services.EffectSkillService;
@@ -44,11 +45,11 @@ import nro.models.utils.Util;
 import java.util.ArrayList;
 import lombok.Getter;
 import lombok.Setter;
-import nro.models.services_dungeon.BlackBallWarService;
+import nro.models.map.timed_map.BlackBallWarService;
 import nro.models.matches.giai_dau.The23rdMartialArtCongressManager;
 import nro.models.map.ItemMap;
 import nro.models.map.MaBuHold;
-import nro.models.map.phoban.MajinBuu14H;
+import nro.models.map.timed_map.MajinBuu14H;
 import nro.models.services_dungeon.SuperDivineWaterService;
 import nro.models.matches.dai_hoi_vo_thuat.The23rdMartialArtCongress;
 import nro.models.daily_Giftcode.DailyGiftData;
@@ -516,12 +517,8 @@ public class Player implements Runnable {
                         this.achievement.done(ConstAchievement.HOAT_DONG_CHAM_CHI, 1000);
                     }
                     if (this.isPl()) {
-                        Calendar calendar = Calendar.getInstance();
-                        int hour = calendar.get(Calendar.HOUR_OF_DAY);
-                        if (hour >= 22 && hour < 23) {
-                            if (zone.map.mapId == 126) {
-                                //  ChangeMapService.gI().changeMapNonSpaceship(this, 19, 1000 + Util.nextInt(-100, 100), 360);
-                            }
+                        if (TimedMapManager.gI().checkAndKickIfClosed(this)) {
+                            return;
                         }
                         TaskService.gI().sendUpdateCountSubTask(this);
                         autoSendBadges();

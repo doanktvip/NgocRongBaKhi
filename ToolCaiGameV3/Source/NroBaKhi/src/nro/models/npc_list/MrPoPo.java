@@ -3,7 +3,7 @@ import nro.models.clan.Clan;
 import nro.models.clan.ClanMember;
 import nro.models.consts.ConstNpc;
 import nro.models.map.phoban.DestronGas;
-import nro.models.services_dungeon.DestronGasService;
+import nro.models.map.phoban.DestronGasService;
 import nro.models.npc.Npc;
 import static nro.models.npc.NpcFactory.PLAYERID_OBJECT;
 import nro.models.player.Player;

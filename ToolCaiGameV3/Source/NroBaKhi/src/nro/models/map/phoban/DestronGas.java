@@ -60,15 +60,7 @@ public class DestronGas extends AbstractClanDungeon {
                 dispose();
             }
 
-            boolean allCharactersDead = true;
-            for (Zone zone : zones) {
-                for (Mob mob : zone.mobs) {
-                    if (!mob.isDie()) {
-                        allCharactersDead = false;
-                        break;
-                    }
-                }
-            }
+            boolean allCharactersDead = this.areAllMobsDead();
 
             if (allCharactersDead && !callBoss) {
                 try {
@@ -85,6 +77,7 @@ public class DestronGas extends AbstractClanDungeon {
                     ));
                     callBoss = true;
                 } catch (Exception exception) {
+                    nro.models.utils.Logger.logException(DestronGas.class, exception);
                 }
             }
 
@@ -213,29 +206,27 @@ public class DestronGas extends AbstractClanDungeon {
     }
 
     private void removeTextKhiGasHuyDiet() {
-        for (Player pl : this.clan.membersInGame) {
-            ItemTimeService.gI().removeTextKhiGasHuyDiet(pl);
+        if (this.clan != null && this.clan.membersInGame != null) {
+            for (Player pl : this.clan.membersInGame) {
+                ItemTimeService.gI().removeTextKhiGasHuyDiet(pl);
+            }
         }
     }
 
     public void dispose() {
-        for (Zone zone : zones) {
-            for (int i = zone.items.size() - 1; i >= 0; i--) {
-                if (i < zone.items.size()) {
-                    ItemMapService.gI().removeItemMap(zone.items.get(i));
-                }
-            }
-        }
+        this.clearAllItems();
         for (Boss boss : bosses) {
-            if (!boss.isDie()) {
+            if (boss != null && !boss.isDie()) {
                 boss.leaveMap();
             }
         }
         this.removeTextKhiGasHuyDiet();
         this.bosses.clear();
         this.isOpened = false;
-        this.clan.KhiGasHuyDiet = null;
-        this.clan = null;
+        if (this.clan != null) {
+            this.clan.KhiGasHuyDiet = null;
+            this.clan = null;
+        }
         this.kickoutkghd = false;
         this.hatchiyatchDead = false;
     }

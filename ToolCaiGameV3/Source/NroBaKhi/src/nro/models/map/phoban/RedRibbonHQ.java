@@ -130,6 +130,7 @@ public class RedRibbonHQ extends AbstractClanDungeon {
                             (int) bossMaxHealth
                     ));
                 } catch (Exception e) {
+                    nro.models.utils.Logger.logException(RedRibbonHQ.class, e);
                 }
             }
             if (zone.map.mapId == 62) {
@@ -142,6 +143,7 @@ public class RedRibbonHQ extends AbstractClanDungeon {
                             (int) bossMaxHealth
                     ));
                 } catch (Exception e) {
+                    nro.models.utils.Logger.logException(RedRibbonHQ.class, e);
                 }
             }
             if (zone.map.mapId == 55) {
@@ -154,6 +156,7 @@ public class RedRibbonHQ extends AbstractClanDungeon {
                             (int) bossMaxHealth
                     ));
                 } catch (Exception e) {
+                    nro.models.utils.Logger.logException(RedRibbonHQ.class, e);
                 }
             }
             if (zone.map.mapId == 54) {
@@ -167,6 +170,7 @@ public class RedRibbonHQ extends AbstractClanDungeon {
                             (int) bossMaxHealth
                     ));
                 } catch (Exception e) {
+                    nro.models.utils.Logger.logException(RedRibbonHQ.class, e);
                 }
             }
 
@@ -183,6 +187,7 @@ public class RedRibbonHQ extends AbstractClanDungeon {
                         ));
                     }
                 } catch (Exception e) {
+                    nro.models.utils.Logger.logException(RedRibbonHQ.class, e);
                 }
             }
         }
@@ -196,24 +201,7 @@ public class RedRibbonHQ extends AbstractClanDungeon {
                 dispose();
             }
 
-            boolean allCharactersDead = true;
-            for (Zone zone : zones) {
-                for (Mob mob : zone.mobs) {
-                    if (!mob.isDie()) {
-                        allCharactersDead = false;
-                        break;
-                    }
-                }
-
-                if (allCharactersDead) {
-                    for (Player boss : zone.getBosses()) {
-                        if (!boss.isDie()) {
-                            allCharactersDead = false;
-                            break;
-                        }
-                    }
-                }
-            }
+            boolean allCharactersDead = this.areAllCharactersDead();
             if (allCharactersDead && !winDT) {
                 winDT = true;
                 for (Zone zone : zones) {
@@ -394,24 +382,20 @@ public class RedRibbonHQ extends AbstractClanDungeon {
         this.removeTextDoanhTrai();
         // remove bosses
         for (Boss boss : bosses) {
-            if (!boss.isDie()) {
+            if (boss != null && !boss.isDie()) {
                 boss.leaveMap();
             }
         }
         // remove itemmap
-        for (Zone zone : zones) {
-            for (int i = zone.items.size() - 1; i >= 0; i--) {
-                if (i < zone.items.size()) {
-                    ItemMapService.gI().removeItemMap(zone.items.get(i));
-                }
-            }
-        }
+        this.clearAllItems();
         this.bosses.clear();
         this.winDT = false;
         this.isOpened = false;
-        this.clan.haveGoneDoanhTrai = true;
-        this.clan.doanhTrai = null;
-        this.clan = null;
+        if (this.clan != null) {
+            this.clan.haveGoneDoanhTrai = true;
+            this.clan.doanhTrai = null;
+            this.clan = null;
+        }
         this.isTimePicking = false;
     }
 }

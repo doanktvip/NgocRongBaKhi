@@ -25,7 +25,7 @@ import java.util.Objects;
 import nro.models.boss.Boss;
 import nro.models.boss.BossID;
 import nro.models.npc.NonInteractiveNPC;
-import nro.models.services_func.EffectMapService;
+import nro.models.map.service.EffectMapService;
 import nro.models.skill.Skill;
 import nro.models.boss.MajinBuu_14h.Mabu2H;
 

@@ -5,7 +5,7 @@ import nro.models.consts.ConstNpc;
 import nro.models.consts.ConstPlayer;
 import nro.models.consts.ConstTask;
 import nro.models.map.Map;
-import nro.models.services_dungeon.MajinBuuService;
+import nro.models.map.timed_map.MajinBuuService;
 import nro.models.map.WayPoint;
 import nro.models.map.Zone;
 import nro.models.mob.Mob;
@@ -23,11 +23,12 @@ import nro.models.utils.Logger;
 import nro.models.utils.TimeUtil;
 
 import java.util.List;
-import nro.models.services_dungeon.BlackBallWarService;
+import nro.models.map.timed_map.BlackBallWarService;
 import nro.models.server.Manager;
 import nro.models.services.InventoryService;
 import nro.models.services.ItemService;
 import nro.models.services_dungeon.NgocRongNamecService;
+import nro.models.map.timed_map.TimedMapManager;
 
 public class ChangeMapService {
 
@@ -539,6 +540,9 @@ public class ChangeMapService {
             EffectSkillService.gI().removeMabuHold(player);
         }
         TaskService.gI().checkDoneTaskGoToMap(player, player.zone);
+        if (TimedMapManager.gI().checkAndKickIfClosed(player)) {
+            return;
+        }
         if (player.fightMabu.pointMabu >= player.fightMabu.POINT_MAX && MapService.gI().isMapMaBu(player.zone.map.mapId)) {
             MajinBuuService.gI().xuongTangDuoi(player);
         }
@@ -579,10 +583,8 @@ public class ChangeMapService {
             if (player.mabuEgg != null) {
                 player.mabuEgg.sendMabuEgg();
             }
-            if (player.zone != null && player.zone.map.mapId == (21 + player.gender)) {
-                if (player.DuaHauEgg != null) {
-                    player.DuaHauEgg.sendDuaHauEgg();
-                }
+            if (player.DuaHauEgg != null) {
+                player.DuaHauEgg.sendDuaHauEgg();
             }
         }
     }
@@ -1101,29 +1103,10 @@ public class ChangeMapService {
     }
 
     public Zone getMapCanJoin(Player player, int mapId) {
-        if (MapService.gI().isMapOffline(player.zone.map.mapId)) {
+        if (player != null && player.zone != null && player.zone.map != null && MapService.gI().isMapOffline(player.zone.map.mapId)) {
             return getZoneJoinByMapIdAndZoneId(player, mapId, 0);
         }
-
-        Map map = getMapById(mapId);
-        if (map == null) {
-            return null;
-        }
-
-        if (map.zones.size() > 0) {
-            Zone zone0 = map.zones.get(0);
-            if (zone0 != null && zone0.getNumOfPlayers() < Zone.PLAYERS_TIEU_CHUAN_TRONG_MAP) {
-                return zone0;
-            }
-        }
-
-        for (Zone zone : map.zones) {
-            if (zone != null && zone.getNumOfPlayers() < Zone.PLAYERS_TIEU_CHUAN_TRONG_MAP) {
-                return zone;
-            }
-        }
-
-        return null;
+        return MapService.gI().getZone(mapId);
     }
 
     public Zone getZoneJoinByMapIdAndZoneId(Player player, int mapId, int zoneId) {

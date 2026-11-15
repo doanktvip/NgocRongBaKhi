@@ -1,7 +1,7 @@
 package nro.models.map;
 import nro.models.player.Player;
 import nro.models.services.PlayerService;
-import nro.models.services_func.EffectMapService;
+import nro.models.map.service.EffectMapService;
 import nro.models.utils.Util;
 
 public class TrapMap {

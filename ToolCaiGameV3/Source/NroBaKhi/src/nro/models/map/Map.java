@@ -10,10 +10,10 @@ import nro.models.consts.ConstMob;
 import java.io.DataInputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
-import nro.models.services_dungeon.MajinBuuService;
-import nro.models.map.phoban.BlackBallWar;
+import nro.models.map.timed_map.MajinBuuService;
+import nro.models.map.timed_map.BlackBallWar;
 import nro.models.map.phoban.RedRibbonHQ;
-import nro.models.services_dungeon.RedRibbonHQService;
+import nro.models.map.phoban.RedRibbonHQService;
 import nro.models.mob.Mob;
 import nro.models.npc.Npc;
 import nro.models.npc.NpcFactory;
@@ -33,18 +33,18 @@ import nro.models.mob_bigboss.RobotBaoVe;
 import nro.models.mob_bigboss.VoiChinNga;
 import nro.models.mob_bigboss.VuaBachTuoc;
 import nro.models.map.phoban.BanDoKhoBau;
-import nro.models.services_dungeon.TreasureUnderSeaService;
-import nro.models.services_dungeon.BlackBallWarService;
+import nro.models.map.phoban.TreasureUnderSeaService;
+import nro.models.map.timed_map.BlackBallWarService;
 import nro.models.map.phoban.SnakeWay;
-import nro.models.services_dungeon.SnakeWayService;
+import nro.models.map.phoban.SnakeWayService;
 import nro.models.map.phoban.DestronGas;
-import nro.models.services_dungeon.DestronGasService;
-import nro.models.map.phoban.MajinBuu14H;
+import nro.models.map.phoban.DestronGasService;
+import nro.models.map.timed_map.MajinBuu14H;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import nro.models.Bot.BotAttackplayer;
-import nro.models.services_dungeon.MajinBuu14HService;
+import nro.models.map.timed_map.MajinBuu14HService;
 import nro.models.services_dungeon.SuperDivineWaterService;
 import nro.models.map.service.MapService;
 import nro.models.mob_bigboss.MayDoSucManh;
@@ -185,6 +185,12 @@ public class Map implements Runnable {
         this.npcs.add(npc);
     }
 
+    /**
+     * LƯU Ý KIẾN TRÚC: Không gọi map.run() trong vòng đời server!
+     * Toàn bộ Zone của tất cả các Map đã được lập lịch cập nhật tập trung theo từng lô (batch 10 khu)
+     * thông qua Manager.initMap() (Manager.java) mỗi 1 giây.
+     * Giữ nguyên hàm này làm fallback kiểm thử độc lập, tránh gọi gây đúp luồng zone.update().
+     */
     public void run() {
         MAP_SCHEDULER.scheduleAtFixedRate(() -> {
             try {
@@ -390,6 +396,9 @@ public class Map implements Runnable {
     //--------------------------------------------------------------------------
     public int yPhysicInTop(int x, int y) {
         try {
+            if (tileMap == null || tileMap.length == 0 || tileMap[0] == null) {
+                return y;
+            }
             int rX = x / SIZE;
             int rY = 0;
 
@@ -453,8 +462,20 @@ public class Map implements Runnable {
     }
 
     public int[] moveXY(Player player) {
+        if (tileMap == null || tileMap.length == 0 || tileMap[0] == null) {
+            return new int[]{
+                player.location.x,
+                player.location.y
+            };
+        }
         int xsd = player.location.x / 24;
         int ysd = player.location.y / 24;
+        if (ysd < 0 || ysd >= tileMap.length || xsd < 0 || xsd >= tileMap[0].length) {
+            return new int[]{
+                player.location.x,
+                player.location.y
+            };
+        }
         int p = this.mapId == 103 ? 4 : 3;
         if (tileMap[ysd][xsd] != 0) {
             if (tileMap[ysd - p][xsd] != 0) {
@@ -497,21 +518,41 @@ public class Map implements Runnable {
     }
 
     public final void readTileMap(int mapId) {
+        if (this.tileMap != null && this.tileMap.length > 0 && this.tileMap[0] != null) {
+            this.tmh = this.tileMap.length;
+            this.tmw = this.tileMap[0].length;
+            this.pxw = this.tmw * SIZE;
+            this.pxh = this.tmh * SIZE;
+            this.maps = new int[this.tmw * this.tmh];
+            int idx = 0;
+            for (int i = 0; i < this.tmh; i++) {
+                for (int j = 0; j < this.tmw; j++) {
+                    this.maps[idx++] = this.tileMap[i][j];
+                }
+            }
+            this.types = new int[this.maps.length];
+            return;
+        }
+
         java.io.File file = new java.io.File("data/map/tile_map_data/" + mapId);
         if (!file.exists()) {
             return;
         }
         try (DataInputStream dis = new DataInputStream(new FileInputStream(file))) {
-            dis.readByte();
-            tmw = dis.readByte();
-            tmh = dis.readByte();
-            pxw = tmw * SIZE;
-            pxh = tmh * SIZE;
-            maps = new int[tmw * tmh];
-            for (int j = 0; j < maps.length; j++) {
-                maps[j] = dis.readByte();
+            this.tmw = dis.readUnsignedByte();
+            this.tmh = dis.readUnsignedByte();
+            this.pxw = this.tmw * SIZE;
+            this.pxh = this.tmh * SIZE;
+            this.maps = new int[this.tmw * this.tmh];
+            this.tileMap = new int[this.tmh][this.tmw];
+            for (int i = 0; i < this.tmh; i++) {
+                for (int j = 0; j < this.tmw; j++) {
+                    int val = dis.readUnsignedByte();
+                    this.maps[i * this.tmw + j] = val;
+                    this.tileMap[i][j] = val;
+                }
             }
-            types = new int[maps.length];
+            this.types = new int[this.maps.length];
         } catch (IOException e) {
             Logger.logException(Map.class, e, "Lỗi đọc tile_map_data: " + mapId);
         }

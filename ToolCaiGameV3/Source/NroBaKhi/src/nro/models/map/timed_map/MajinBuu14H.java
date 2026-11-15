@@ -1,4 +1,4 @@
-package nro.models.map.phoban;
+package nro.models.map.timed_map;
 import nro.models.utils.Functions;
 import java.util.ArrayList;
 import java.util.List;
@@ -10,6 +10,7 @@ import nro.models.server.Maintenance;
 import nro.models.map.service.MapService;
 import nro.models.map.service.ChangeMapService;
 import nro.models.utils.TimeUtil;
+import nro.models.map.timed_map.TimedMapManager;
 
 @Data
 public final class MajinBuu14H implements Runnable {
@@ -91,9 +92,7 @@ public final class MajinBuu14H implements Runnable {
     }
 
     private void kickOut(Player player) {
-        if (MapService.gI().isMapMabu2H(player.zone.map.mapId) && !player.isAdmin()) {
-            ChangeMapService.gI().changeMapBySpaceShip(player, player.gender + 21, -1, 336);
-        }
+        TimedMapManager.gI().checkAndKickIfClosed(player);
     }
 
 }

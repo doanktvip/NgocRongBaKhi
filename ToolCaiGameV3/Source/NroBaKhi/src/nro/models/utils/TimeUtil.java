@@ -15,8 +15,8 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
-import nro.models.map.phoban.BlackBallWar;
-import nro.models.services_dungeon.MajinBuuService;
+import nro.models.map.timed_map.BlackBallWar;
+import nro.models.map.timed_map.MajinBuuService;
 
 /**
  *
@@ -202,7 +202,17 @@ public class TimeUtil {
         return (hour >= 12 && hour < 13);
     }
 
+    public static boolean isMabu12HOpen() {
+        return isMabuOpen();
+    }
+
     public static boolean isMabu14HOpen() {
+        Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("Asia/Ho_Chi_Minh"));
+        int hour = calendar.get(Calendar.HOUR_OF_DAY);
+        return (hour >= 14 && hour < 15);
+    }
+
+    public static boolean isHirudegarnOpen() {
         Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("Asia/Ho_Chi_Minh"));
         int hour = calendar.get(Calendar.HOUR_OF_DAY);
         return (hour >= 22 && hour < 23);

@@ -61,16 +61,7 @@ public class SnakeWay extends AbstractClanDungeon {
                 dispose();
             }
 
-            boolean allCharactersDead = true;
-            for (Zone zone : zones) {
-                for (Mob mob : zone.mobs) {
-                    if (!mob.isDie()) {
-                        allCharactersDead = false;
-                        break;
-                    }
-                }
-            }
-            if (allCharactersDead) {
+            if (this.areAllMobsDead()) {
                 allMobsDead = true;
             }
 
@@ -136,14 +127,14 @@ public class SnakeWay extends AbstractClanDungeon {
                 Mob mob = mobs.get(i);
                 if (i == 5) {
                     mob.lvMob = 1;
-                    mob.point.dame = (int) level * 100 * mob.tempId * 12;
-                    mob.point.maxHp = (int) level * 1000 * mob.tempId * 12;
+                    mob.point.dame = (int) Math.min((long) level * 100 * mob.tempId * 12, Integer.MAX_VALUE);
+                    mob.point.maxHp = (int) Math.min((long) level * 1000 * mob.tempId * 12, Integer.MAX_VALUE);
                     mob.hoiSinh();
                     mob.hoiSinhMobPhoBan();
                 } else {
                     mob.lvMob = 0;
-                    mob.point.dame = (int) level * 10 * mob.tempId;
-                    mob.point.maxHp = (int) level * 100 * mob.tempId;
+                    mob.point.dame = (int) Math.min((long) level * 10 * mob.tempId, Integer.MAX_VALUE);
+                    mob.point.maxHp = (int) Math.min((long) level * 100 * mob.tempId, Integer.MAX_VALUE);
                     mob.hoiSinh();
                     mob.hoiSinhMobPhoBan();
                 }
@@ -181,6 +172,7 @@ public class SnakeWay extends AbstractClanDungeon {
                             (int) bossMaxHealth
                     ));
                 } catch (Exception exception) {
+                    nro.models.utils.Logger.logException(SnakeWay.class, exception);
                 }
             }
         }
@@ -225,24 +217,20 @@ public class SnakeWay extends AbstractClanDungeon {
     public void dispose() {
         // remove bosses
         for (Boss boss : bosses) {
-            if (!boss.isDie()) {
+            if (boss != null && !boss.isDie()) {
                 boss.leaveMap();
             }
         }
-        for (Zone zone : zones) {
-            for (int i = zone.items.size() - 1; i >= 0; i--) {
-                if (i < zone.items.size()) {
-                    ItemMapService.gI().removeItemMap(zone.items.get(i));
-                }
-            }
-        }
+        this.clearAllItems();
         this.removeTextConDuongRanDoc();
         this.bosses.clear();
         this.allMobsDead = false;
         this.endCDRD = false;
         this.isOpened = false;
-        this.clan.ConDuongRanDoc = null;
-        this.clan = null;
+        if (this.clan != null) {
+            this.clan.ConDuongRanDoc = null;
+            this.clan = null;
+        }
         this.kickoutcdrd = false;
     }
 }

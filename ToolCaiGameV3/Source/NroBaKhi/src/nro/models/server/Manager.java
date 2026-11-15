@@ -1118,18 +1118,21 @@ public final class Manager {
      */
     private int[][] readTileMap(int mapId) {
         int[][] tileMap = null;
-        try {
-            try (DataInputStream dis = new DataInputStream(new FileInputStream("data/map/tile_map_data/" + mapId))) {
-                int w = dis.readByte();
-                int h = dis.readByte();
-                tileMap = new int[h][w];
-                for (int[] tm : tileMap) {
-                    for (int j = 0; j < tm.length; j++) {
-                        tm[j] = dis.readByte();
-                    }
+        java.io.File file = new java.io.File("data/map/tile_map_data/" + mapId);
+        if (!file.exists()) {
+            return null;
+        }
+        try (DataInputStream dis = new DataInputStream(new FileInputStream(file))) {
+            int w = dis.readUnsignedByte();
+            int h = dis.readUnsignedByte();
+            tileMap = new int[h][w];
+            for (int[] tm : tileMap) {
+                for (int j = 0; j < tm.length; j++) {
+                    tm[j] = dis.readUnsignedByte();
                 }
             }
         } catch (IOException e) {
+            Logger.logException(Manager.class, e, "Lỗi đọc tile_map_data: " + mapId);
         }
         return tileMap;
     }

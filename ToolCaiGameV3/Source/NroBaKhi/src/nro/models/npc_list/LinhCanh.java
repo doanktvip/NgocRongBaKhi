@@ -2,7 +2,7 @@ package nro.models.npc_list;
 import nro.models.clan.ClanMember;
 import nro.models.consts.ConstNpc;
 import nro.models.map.phoban.RedRibbonHQ;
-import nro.models.services_dungeon.RedRibbonHQService;
+import nro.models.map.phoban.RedRibbonHQService;
 import nro.models.npc.Npc;
 import nro.models.player.Player;
 import nro.models.map.service.NpcService;

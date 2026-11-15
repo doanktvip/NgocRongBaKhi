@@ -1,6 +1,5 @@
-package nro.models.services_dungeon;
+package nro.models.map.phoban;
 
-import nro.models.map.phoban.BanDoKhoBau;
 import nro.models.item.Item;
 import java.util.ArrayList;
 import java.util.List;
@@ -11,11 +10,8 @@ import nro.models.services.Service;
 import nro.models.utils.Util;
 
 /**
- *
- * @author By Mr Blue
- * 
+ * Service quản lý hoạt động Bản Đồ Kho Báu (BanDoKhoBau)
  */
-
 public class TreasureUnderSeaService {
 
     private static TreasureUnderSeaService instance;

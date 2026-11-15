@@ -2,8 +2,8 @@ package nro.models.npc_list;
 
 import nro.models.consts.ConstNpc;
 import java.util.ArrayList;
-import nro.models.services_dungeon.MajinBuu14HService;
-import nro.models.services_dungeon.MajinBuuService;
+import nro.models.map.timed_map.MajinBuu14HService;
+import nro.models.map.timed_map.MajinBuuService;
 import nro.models.npc.Npc;
 import nro.models.player.Player;
 import nro.models.services.ItemTimeService;

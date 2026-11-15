@@ -1,7 +1,7 @@
 package nro.models.npc_list;
 import nro.models.consts.ConstNpc;
-import nro.models.map.phoban.BlackBallWar;
-import nro.models.services_dungeon.BlackBallWarService;
+import nro.models.map.timed_map.BlackBallWar;
+import nro.models.map.timed_map.BlackBallWarService;
 import nro.models.npc.Npc;
 import nro.models.player.Player;
 import nro.models.services.Service;

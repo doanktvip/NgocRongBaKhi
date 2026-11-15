@@ -58,9 +58,7 @@ public class BanDoKhoBau extends AbstractClanDungeon {
                 dispose();
             }
 
-            allCharactersDead = true;
             for (Zone zone : zones) {
-
                 if (zone.map.mapId == 135) {
                     for (Player pl : zone.getNotBosses()) {
                         if (pl != null) {
@@ -71,23 +69,8 @@ public class BanDoKhoBau extends AbstractClanDungeon {
                         }
                     }
                 }
-
-                for (Mob mob : zone.mobs) {
-                    if (!mob.isDie()) {
-                        allCharactersDead = false;
-                        break;
-                    }
-                }
-
-                if (allCharactersDead) {
-                    for (Player cBoss : zone.getBosses()) {
-                        if (!cBoss.isDie()) {
-                            allCharactersDead = false;
-                            break;
-                        }
-                    }
-                }
             }
+            allCharactersDead = this.areAllCharactersDead();
 
             if (!kickoutbdkb && (allCharactersDead || Util.canDoWithTime(lastTimeOpen, TIME_BAN_DO_KHO_BAU - 60000))) {
                 kickoutbdkb = true;
@@ -195,6 +178,7 @@ public class BanDoKhoBau extends AbstractClanDungeon {
                             (int) bossMaxHealth
                     );
                 } catch (Exception exception) {
+                    nro.models.utils.Logger.logException(BanDoKhoBau.class, exception);
                 }
             }
         }
@@ -220,14 +204,18 @@ public class BanDoKhoBau extends AbstractClanDungeon {
     }
 
     private void sendTextBanDoKhoBau() {
-        for (Player pl : this.clan.membersInGame) {
-            ItemTimeService.gI().sendTextBanDoKhoBau(pl);
+        if (this.clan != null && this.clan.membersInGame != null) {
+            for (Player pl : this.clan.membersInGame) {
+                ItemTimeService.gI().sendTextBanDoKhoBau(pl);
+            }
         }
     }
 
     private void removeTextBanDoKhoBau() {
-        for (Player pl : this.clan.membersInGame) {
-            ItemTimeService.gI().removeTextBanDoKhoBau(pl);
+        if (this.clan != null && this.clan.membersInGame != null) {
+            for (Player pl : this.clan.membersInGame) {
+                ItemTimeService.gI().removeTextBanDoKhoBau(pl);
+            }
         }
     }
 
@@ -235,19 +223,15 @@ public class BanDoKhoBau extends AbstractClanDungeon {
         if (boss != null) {
             this.boss.leaveMap();
         }
-        for (Zone zone : zones) {
-            for (int i = zone.items.size() - 1; i >= 0; i--) {
-                if (i < zone.items.size()) {
-                    ItemMapService.gI().removeItemMap(zone.items.get(i));
-                }
-            }
-        }
+        this.clearAllItems();
         this.removeTextBanDoKhoBau();
         this.allCharactersDead = false;
         this.boss = null;
         this.isOpened = false;
-        this.clan.BanDoKhoBau = null;
-        this.clan = null;
+        if (this.clan != null) {
+            this.clan.BanDoKhoBau = null;
+            this.clan = null;
+        }
         this.kickoutbdkb = false;
     }
 }

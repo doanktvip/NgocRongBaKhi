@@ -1,7 +1,7 @@
 package nro.models.npc_list;
 import nro.models.boss.BossID;
 import nro.models.consts.ConstNpc;
-import nro.models.services_dungeon.SnakeWayService;
+import nro.models.map.phoban.SnakeWayService;
 import nro.models.services_dungeon.TrainingService;
 import nro.models.npc.Npc;
 import static nro.models.npc.NpcFactory.PLAYERID_OBJECT;

@@ -1,6 +1,5 @@
-package nro.models.services_dungeon;
+package nro.models.map.phoban;
 
-import nro.models.map.phoban.RedRibbonHQ;
 import nro.models.map.Zone;
 import nro.models.player.Player;
 import nro.models.services.Service;
@@ -10,11 +9,8 @@ import java.util.List;
 import nro.models.utils.Util;
 
 /**
- *
- * @author By Mr Blue
- * 
+ * Service quản lý hoạt động Doanh Trại Độc Nhãn (RedRibbonHQ)
  */
-
 public class RedRibbonHQService {
 
     private static RedRibbonHQService instance;
