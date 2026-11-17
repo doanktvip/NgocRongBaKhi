@@ -154,9 +154,6 @@ public class RedRibbonHQ extends AbstractClanDungeon {
             }
 
             if (mapId == 59) {
-                zone.isbulon1Alive = true;
-                zone.isbulon2Alive = true;
-                zone.isTUTAlive = true;
                 try {
                     long bHp = Math.min(avgDame * 60 * n, MAX_HP_CAP);
                     long bDame = Math.min((avgHp * 6) / 100, MAX_DAME_CAP);

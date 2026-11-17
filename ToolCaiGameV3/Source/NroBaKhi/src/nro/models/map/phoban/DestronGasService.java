@@ -37,14 +37,18 @@ public class DestronGasService extends AbstractClanDungeonService<DestronGas> {
         if (clan != null) {
             ClanMember cm = clan.getClanMember((int) player.id);
             if (cm != null) {
-                if (player.clanMember.getNumDateFromJoinTimeToToday() < 2) {
+                if (player.getSession() == null || !player.getSession().actived) {
+                    Service.gI().sendThongBao(player, "Vui lòng mở thành viên trước");
+                    return;
+                }
+                if (player.clanMember.getNumDateFromJoinTimeToToday() < DestronGas.N_DAY_JOIN_CLAN) {
                     return;
                 }
                 if (clan.members.size() < DestronGas.N_PLAYER_CLAN) {
                     return;
                 }
                 if (player.clan.KhiGasHuyDiet == null) {
-                    if (level >= 1 && level <= 110) {
+                    if (level >= DestronGas.MIN_LEVEL && level <= DestronGas.MAX_LEVEL) {
                         if (clan.isLeader(player)) {
                             DestronGas khiGasHuyDiet = findAvailableRoom();
                             if (khiGasHuyDiet != null) {
@@ -52,7 +56,7 @@ public class DestronGasService extends AbstractClanDungeonService<DestronGas> {
                                     player.clan.timesPerDayKGHD = 1;
                                 } else {
                                     player.clan.timesPerDayKGHD++;
-                                    if (player.clan.timesPerDayKGHD > 3) {
+                                    if (player.clan.timesPerDayKGHD > DestronGas.MAX_TIMES_PER_DAY) {
                                         Service.gI().sendThongBao(player, "Hãy chờ đến ngày mai");
                                         return;
                                     }

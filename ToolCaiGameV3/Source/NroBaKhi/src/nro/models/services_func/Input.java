@@ -32,6 +32,7 @@ import nro.models.player.Inventory;
 import nro.models.server.Manager;
 import nro.models.services.ClanService;
 import nro.models.map.phoban.BanDoKhoBau;
+import nro.models.map.phoban.DestronGas;
 import nro.models.map.service.ChangeMapService;
 import nro.models.services.PlayerService;
 import nro.models.server.ServerLog;
@@ -456,13 +457,15 @@ public class Input {
                 }
                 case CHOOSE_LEVEL_KGHD -> {
                     int level = Integer.parseInt(text[0]);
-                    if (level >= 1 && level <= 110) {
+                    if (level >= DestronGas.MIN_LEVEL && level <= DestronGas.MAX_LEVEL) {
                         Npc npc = NpcManager.getByIdAndMap(ConstNpc.MR_POPO, player.zone.map.mapId);
                         if (npc != null) {
                             npc.createOtherMenu(player, 2,
                                     "Cậu có chắc muốn đến\nDestron Gas cấp độ " + level + " ?",
                                     new String[]{"Đồng ý", "Từ chối"}, level);
                         }
+                    } else {
+                        Service.gI().sendThongBao(player, "Không thể thực hiện");
                     }
                 }
                 case CHOOSE_LEVEL_CDRD -> {
@@ -691,7 +694,7 @@ public class Input {
     }
 
     public void createFormChooseLevelKGHD(Player pl) {
-        createForm(pl, CHOOSE_LEVEL_KGHD, "Hãy chọn cấp độ từ 1-110", new SubInput("Cấp độ", NUMERIC));
+        createForm(pl, CHOOSE_LEVEL_KGHD, "Hãy chọn cấp độ Destron Gas từ " + DestronGas.MIN_LEVEL + "-" + DestronGas.MAX_LEVEL, new SubInput("Cấp độ", NUMERIC));
     }
 
     public void createFormSenditem1(Player pl) {

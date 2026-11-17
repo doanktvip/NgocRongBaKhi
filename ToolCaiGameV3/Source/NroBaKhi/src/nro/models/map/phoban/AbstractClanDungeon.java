@@ -5,6 +5,7 @@ import java.util.List;
 import lombok.Data;
 import nro.models.boss.Boss;
 import nro.models.clan.Clan;
+import nro.models.consts.BossStatus;
 import nro.models.map.Zone;
 import nro.models.mob.Mob;
 import nro.models.player.Player;
@@ -50,40 +51,42 @@ public abstract class AbstractClanDungeon implements Runnable {
     }
 
     public boolean areAllMobsDead() {
-        int mobCount = 0;
         for (Zone zone : this.zones) {
             if (zone != null && zone.mobs != null) {
                 for (Mob mob : zone.mobs) {
-                    if (mob != null) {
-                        mobCount++;
-                        if (!mob.isDie()) {
+                    if (mob != null && !mob.isDie()) {
+                        return false;
+                    }
+                }
+            }
+        }
+        return true;
+    }
+
+    public boolean areAllBossesDead() {
+        // 1. Kiểm tra Boss còn sống trong bất kỳ zone nào
+        for (Zone zone : this.zones) {
+            if (zone != null) {
+                List<Player> zoneBosses = zone.getBosses();
+                if (zoneBosses != null) {
+                    for (Player b : zoneBosses) {
+                        if (b != null && b.zone != null && b.nPoint != null && !b.isDie()) {
                             return false;
                         }
                     }
                 }
             }
         }
-        return mobCount > 0;
-    }
-
-    public boolean areAllBossesDead() {
-        int bossCount = 0;
-        for (Zone zone : this.zones) {
-            if (zone != null) {
-                List<Player> zoneBosses = zone.getBosses();
-                if (zoneBosses != null) {
-                    for (Player b : zoneBosses) {
-                        if (b != null) {
-                            bossCount++;
-                            if (!b.isDie()) {
-                                return false;
-                            }
-                        }
-                    }
+        // 2. Kiểm tra danh sách Boss của phó bản (Boss còn sống chỉ khi chưa leaveMap/dispose)
+        if (this.bosses != null && !this.bosses.isEmpty()) {
+            for (Boss boss : this.bosses) {
+                if (boss != null && boss.zone != null && boss.nPoint != null && !boss.isDie()
+                        && boss.bossStatus != BossStatus.REST && boss.bossStatus != BossStatus.DIE) {
+                    return false;
                 }
             }
         }
-        return bossCount > 0;
+        return true;
     }
 
     public boolean areAllCharactersDead() {
@@ -160,7 +163,7 @@ public abstract class AbstractClanDungeon implements Runnable {
         this.isOpened = false;
         try {
             this.removeTextTime();
-            for (Boss boss : new ArrayList<>(this.bosses)) {
+            for (Boss boss : this.bosses) {
                 if (boss != null && boss.zone != null) {
                     boss.leaveMap();
                 }

@@ -304,6 +304,10 @@ public class QuyLaoKame extends Npc {
     }
 
     private void handleTreasureMap(Player player) {
+        if (player.getSession() == null || !player.getSession().actived) {
+            Service.gI().sendThongBao(player, "Vui lòng mở thành viên trước");
+            return;
+        }
         if (player.clan != null && player.clan.BanDoKhoBau != null) {
             this.createOtherMenu(player, ConstNpc.MENU_OPEN_DBKB, "Bang hội con đang ở hang kho báu cấp " + player.clan.BanDoKhoBau.level + "\ncon có muốn đi cùng họ không?", "Top\nBang hội", "Thành tích\nBang", "Đồng ý", "Từ chối");
         } else {
@@ -322,6 +326,10 @@ public class QuyLaoKame extends Npc {
             case 0 -> Service.gI().showTopClanBDKB(player);
             case 1 -> Service.gI().showMyTopClanBDKB(player);
             case 2 -> {
+                if (player.getSession() == null || !player.getSession().actived) {
+                    Service.gI().sendThongBao(player, "Vui lòng mở thành viên trước");
+                    return;
+                }
                 if (player.clan == null) {
                     Service.gI().sendThongBao(player, "Hãy vào bang hội trước");
                     return;

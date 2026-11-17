@@ -36,6 +36,10 @@ public class TreasureUnderSeaService extends AbstractClanDungeonService<BanDoKho
     public synchronized void openBanDoKhoBau(Player player, byte level) {
         if (level >= BanDoKhoBau.MIN_LEVEL && level <= BanDoKhoBau.MAX_LEVEL) {
             if (player.clan != null && player.clan.BanDoKhoBau == null) {
+                if (player.getSession() == null || !player.getSession().actived) {
+                    Service.gI().sendThongBao(player, "Vui lòng mở thành viên trước");
+                    return;
+                }
                 if (!player.clan.isLeader(player)) {
                     Service.gI().sendThongBao(player, "Chỉ bang chủ mới có quyền mở Bản Đồ Kho Báu");
                     return;
@@ -63,25 +67,23 @@ public class TreasureUnderSeaService extends AbstractClanDungeonService<BanDoKho
                             return;
                         }
 
-                        InventoryService.gI().subQuantityItemsBag(player, item, 1);
-                        InventoryService.gI().sendItemBags(player);
-
-                        banDoKhoBau.startRoom(player.clan, level);
-                        long sessionTime = banDoKhoBau.getLastTimeOpen();
-
+                        long now = System.currentTimeMillis();
                         if (player.clan.timesPerDayBDKB == 0) {
-                            player.clan.lastTimeOpenBanDoKhoBau = sessionTime;
+                            player.clan.lastTimeOpenBanDoKhoBau = now;
                         }
                         player.clan.timesPerDayBDKB++;
-                        player.clan.timeOpenBanDoKhoBau = sessionTime;
+                        player.clan.timeOpenBanDoKhoBau = now;
                         player.clan.updateBDKB();
 
                         if (player.timesPerDayBDKB == 0) {
-                            player.lastTimeJoinBDKB = sessionTime;
+                            player.lastTimeJoinBDKB = now;
                         }
                         player.timesPerDayBDKB++;
-                        player.lastTimeOpenBDKBSession = sessionTime;
+                        player.lastTimeOpenBDKBSession = now;
 
+                        InventoryService.gI().subQuantityItemsBag(player, item, 1);
+                        InventoryService.gI().sendItemBags(player);
+                        banDoKhoBau.startRoom(player.clan, level);
                         ChangeMapService.gI().goToDBKB(player);
                     } else {
                         Service.gI().sendThongBao(player, "Hang kho báu đã đầy, hãy quay lại sau 30 phút");

@@ -1,4 +1,4 @@
-package nro.models.map;
+    package nro.models.map;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -108,15 +108,9 @@ public class ItemMap {
                 }
             }
             if ((Util.canDoWithTime(createTime, 50000) && isNotNullItem() && itemTemplate.type != 22 || Util.canDoWithTime(createTime, 1800000)) && !this.isNamecBall) {
-                boolean isPersistentDoanhTraiItem = this.zone != null
-                        && MapService.gI().isMapDoanhTrai(this.zone.map.mapId)
-                        && ((this.itemTemplate.id >= 14 && this.itemTemplate.id <= 20)
-                        || (this.itemTemplate.id >= 837 && this.itemTemplate.id <= 842)
-                        || this.itemTemplate.id == 859
-                        || this.itemTemplate.id == 956);
                 if (this.zone != null && this.zone.map.mapId != 21 && this.zone.map.mapId != 22
                         && this.zone.map.mapId != 23 && this.itemTemplate.id != 78
-                        && this.itemTemplate.id != 726 && !isPersistentDoanhTraiItem) {
+                        && this.itemTemplate.id != 726 && !MapService.gI().isMapDoanhTrai(this.zone.map.mapId)) {
                     ItemMapService.gI().removeItemMapAndSendClient(this);
                 }
             }

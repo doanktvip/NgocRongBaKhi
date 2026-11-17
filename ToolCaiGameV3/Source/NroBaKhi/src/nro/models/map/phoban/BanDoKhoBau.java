@@ -135,10 +135,6 @@ public class BanDoKhoBau extends AbstractClanDungeon {
     private void init() {
         double scale = (double) this.level / (double) MAX_LEVEL;
         for (Zone zone : this.zones) {
-            for (TrapMap trap : zone.trapMaps) {
-                trap.dame = (int) Math.min(Math.max(10_000L, (long) (10_000_000L * scale)), 10_000_000L);
-            }
-
             if (zone.map.mapId == 135 || zone.map.mapId == 136 || zone.map.mapId == 137 || zone.map.mapId == 138) {
                 List<Mob> mobs = zone.mobs;
                 for (int i = 0; i < mobs.size(); i++) {

@@ -114,8 +114,8 @@ public class NinjaAoTim extends Boss {
         sendExitMap(this);
 
         int count = Util.nextInt(4, 6);
-        int hpClone = Math.max(1, this.nPoint.hpMax / 10);
-        int dameClone = Math.max(1, this.nPoint.dame / 10);
+        int hpClone = this.nPoint.hpMax;
+        int dameClone = this.nPoint.dame;
         int[] cloneIds = {
             BossID.NINJA_AO_TIM1,
             BossID.NINJA_AO_TIM2,

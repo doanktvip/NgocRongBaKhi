@@ -17,7 +17,7 @@ public class RedRibbonHQService extends AbstractClanDungeonService<RedRibbonHQ> 
     // Cấu hình điều kiện tham gia & sức chứa Doanh Trại
     public static final int AVAILABLE = 50;
     public static final int N_PLAYER_CLAN = 1;//3
-    public static final int N_PLAYER_MAP = 1;//2
+    public static final int N_PLAYER_MAP = 0;//2
     public static final int N_DAY_JOIN_CLAN = 0;//1
     public static final int MIN_X_JOIN = 1285;
     public static final int MAX_X_JOIN = 1645;
@@ -71,12 +71,6 @@ public class RedRibbonHQService extends AbstractClanDungeonService<RedRibbonHQ> 
         }
         if (pl.clan.doanhTrai != null) {
             ChangeMapService.gI().changeMapInYard(pl, 53, -1, 60);
-            pl.clan.doanhTrai.updateHPDame();
-            if (pl.clan.doanhTrai.isTimePicking) {
-                nro.models.services.ItemTimeService.gI().sendTextTimePickDoanhTrai(pl);
-            } else {
-                nro.models.services.ItemTimeService.gI().sendTextDoanhTrai(pl);
-            }
             return;
         }
         if (pl.clan.lastTimeOpenDoanhTrai > 0 && !Util.canDoWithTime(pl.clan.lastTimeOpenDoanhTrai, TIME_RESET_DOANH_TRAI)) {

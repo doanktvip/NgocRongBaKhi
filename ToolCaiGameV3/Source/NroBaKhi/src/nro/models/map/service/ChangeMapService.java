@@ -118,15 +118,12 @@ public class ChangeMapService {
             Service.gI().sendThongBaoOK(pl, "Không thể đổi khu vực trong map này");
             return;
         }
-        if (!pl.isAdmin()) {
-            if (MapService.gI().isMapOffline(pl.zone.map.mapId)) {
-                Service.gI().sendThongBaoOK(pl, "Không thể đổi khu vực trong map này");
-                return;
-            }
-            if (MapService.gI().isMapPhoBan(pl.zone.map.mapId)) {
-                Service.gI().sendThongBaoOK(pl, "Không thể đổi khu vực trong map này");
-                return;
-            }
+        if (MapService.gI().isMapOffline(pl.zone.map.mapId)
+                || MapService.gI().isMapPhoBan(pl.zone.map.mapId)
+                || MapService.gI().isMapMaBu(pl.zone.map.mapId)
+                || pl.zone.map.mapId == 128) {
+            Service.gI().sendThongBaoOK(pl, "Không thể đổi khu vực trong map này");
+            return;
         }
         Message msg = null;
         try {
@@ -169,23 +166,12 @@ public class ChangeMapService {
             NpcService.gI().createTutorial(pl, -1, "Không thể đến khu vực này");
             return;
         }
-        if (!pl.isAdmin() && !pl.isBoss) {
-            if (MapService.gI().isMapOffline(pl.zone.map.mapId)) {
-                NpcService.gI().createTutorial(pl, -1, "Không thể đến khu vực này");
-                return;
-            }
-            if (MapService.gI().isMapPhoBan(pl.zone.map.mapId)) {
-                NpcService.gI().createTutorial(pl, -1, "Không thể đến khu vực này");
-                return;
-            }
-            if (MapService.gI().isMapMaBu(pl.zone.map.mapId)) {
-                NpcService.gI().createTutorial(pl, -1, "Không thể đến khu vực này");
-                return;
-            }
-            if (pl.zone.map.mapId == 128) {
-                NpcService.gI().createTutorial(pl, -1, "Không thể đổi khu vực khi đang trong bụng Bư");
-                return;
-            }
+        if (MapService.gI().isMapOffline(pl.zone.map.mapId)
+                || MapService.gI().isMapPhoBan(pl.zone.map.mapId)
+                || MapService.gI().isMapMaBu(pl.zone.map.mapId)
+                || pl.zone.map.mapId == 128) {
+            NpcService.gI().createTutorial(pl, -1, "Không thể đến khu vực này");
+            return;
         }
         if (pl.isAdmin() || pl.isBoss || Util.canDoWithTime(pl.idMark.getLastTimeChangeZone(), 5000)) {
             pl.idMark.setLastTimeChangeZone(System.currentTimeMillis());
@@ -844,6 +830,10 @@ public class ChangeMapService {
 
     public void goToDBKB(Player player) {
         if (!player.idMark.isGoToBDKB()) {
+            if (player.getSession() == null || !player.getSession().actived) {
+                Service.gI().sendThongBao(player, "Vui lòng mở thành viên trước");
+                return;
+            }
             if (!player.isAdmin() && player.nPoint.power < BanDoKhoBau.POWER_CAN_GO_TO_DBKB) {
                 Service.gI().sendThongBao(player, "Yêu cầu sức mạnh lớn hơn " + Util.numberToMoney(BanDoKhoBau.POWER_CAN_GO_TO_DBKB));
                 return;

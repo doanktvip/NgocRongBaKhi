@@ -215,7 +215,6 @@ public class ItemTimeService {
     public void sendTextBanDoKhoBau(Player player) {
         if (player != null && player.clan != null && player.clan.BanDoKhoBau != null && player.clan.BanDoKhoBau.isOpened()) {
             if (player.clan.BanDoKhoBau.isKickout()) {
-                sendTextTimeSapBanDoKhoBau(player);
                 return;
             }
             int secondPassed = (int) ((System.currentTimeMillis() - player.clan.BanDoKhoBau.getLastTimeOpen()) / 1000);

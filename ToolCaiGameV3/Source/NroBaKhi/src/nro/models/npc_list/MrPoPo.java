@@ -52,9 +52,9 @@ public class MrPoPo extends Npc {
                             if (clan != null) {
                                 ClanMember cm = clan.getClanMember((int) player.id);
                                 if (cm != null) {
-                                    if (player.clanMember.getNumDateFromJoinTimeToToday() < 2) {
+                                    if (player.clanMember.getNumDateFromJoinTimeToToday() < DestronGas.N_DAY_JOIN_CLAN) {
                                         NpcService.gI().createTutorial(player, tempId, this.avartar,
-                                                "Gia nhập bang hội trên 2 ngày mới được tham gia");
+                                                "Gia nhập bang hội trên " + DestronGas.N_DAY_JOIN_CLAN + " ngày mới được tham gia");
                                         return;
                                     }
                                 if (!player.getSession().actived) {

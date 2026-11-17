@@ -2,6 +2,7 @@ package nro.models.map.phoban;
 
 import nro.models.boss.khi_gas.DrLychee;
 import nro.models.clan.Clan;
+import nro.models.consts.ConstMob;
 import nro.models.map.Zone;
 import nro.models.mob.Mob;
 import nro.models.player.Player;
@@ -19,12 +20,27 @@ import lombok.EqualsAndHashCode;
 @EqualsAndHashCode(callSuper = false)
 public class DestronGas extends AbstractClanDungeon {
 
-    public static final long POWER_CAN_GO_TO_KHI_GAS_HUY_DIET = 2000000000;
+    // ==========================================
+    // CẤU HÌNH CẤP ĐỘ PHÓ BẢN
+    // ==========================================
+    public static final int MIN_LEVEL = 1;
+    public static final int MAX_LEVEL = 100;
+
+    // ==========================================
+    // CẤU HÌNH THỜI GIAN & GIỚI HẠN
+    // ==========================================
+    public static final long POWER_CAN_GO_TO_KHI_GAS_HUY_DIET = 2_000_000_000L;
     public static final int AVAILABLE = 50;
-    public static final int TIME_KHI_GAS_HUY_DIET = 1800000;
+    public static final int TIME_KHI_GAS_HUY_DIET = 1_800_000; // 30 phút
+    public static final int TIME_KICKOUT_KGHD = 60_000; // 60 giây
+    public static final int MAX_TIMES_PER_DAY = 3;
     public static final int N_PLAYER_CLAN = 0;
+    public static final int N_DAY_JOIN_CLAN = 0;
+    public static final int MAP_BOSS = 148;
+
     private boolean callBoss;
     public boolean hatchiyatchDead;
+    private long lastTimeSendTextTime;
 
     public DestronGas(int id) {
         super(id);
@@ -45,12 +61,13 @@ public class DestronGas extends AbstractClanDungeon {
 
         if (allMobsDead && !callBoss) {
             try {
-                long bossDamage = (1000 * level);
-                long bossMaxHealth = (15000000 * level);
-                bossDamage = Math.min(bossDamage, 200000000L);
-                bossMaxHealth = Math.min(bossMaxHealth, 2000000000L);
+                double scale = (double) this.level / (double) MAX_LEVEL;
+                long bossDamage = (long) (20_000_000L * scale);
+                long bossMaxHealth = (long) (2_000_000_000L * scale);
+                bossDamage = Math.max(1_000L, Math.min(bossDamage, 20_000_000L));
+                bossMaxHealth = Math.max(10_000L, Math.min(bossMaxHealth, 2_000_000_000L));
                 bosses.add(new DrLychee(
-                        getMapById(148),
+                        getMapById(MAP_BOSS),
                         clan,
                         level,
                         (int) bossDamage,
@@ -62,7 +79,7 @@ public class DestronGas extends AbstractClanDungeon {
             }
         }
 
-        if (!kickout && (hatchiyatchDead || Util.canDoWithTime(lastTimeOpen, TIME_KHI_GAS_HUY_DIET - 60000))) {
+        if (!kickout && (hatchiyatchDead || Util.canDoWithTime(lastTimeOpen, TIME_KHI_GAS_HUY_DIET - TIME_KICKOUT_KGHD))) {
             kickout = true;
             timeKickOut = System.currentTimeMillis();
             for (Zone zone : zones) {
@@ -77,6 +94,7 @@ public class DestronGas extends AbstractClanDungeon {
                     }
                 }
             }
+            sendTextTime();
         }
         if (kickout && Util.canDoWithTime(lastTimeSendNotify, 10000)) {
             lastTimeSendNotify = System.currentTimeMillis();
@@ -92,6 +110,11 @@ public class DestronGas extends AbstractClanDungeon {
                     }
                 }
             }
+        }
+
+        if (Util.canDoWithTime(lastTimeSendTextTime, 15000)) {
+            sendTextTime();
+            lastTimeSendTextTime = System.currentTimeMillis();
         }
     }
 
@@ -141,26 +164,32 @@ public class DestronGas extends AbstractClanDungeon {
     }
 
     private void init() {
-        // Hồi sinh quái
+        double scale = (double) this.level / (double) MAX_LEVEL;
         for (Zone zone : this.zones) {
-            List<Mob> mobs = zone.mobs;
-            for (int i = 0; i < mobs.size(); i++) {
-                Mob mob = mobs.get(i);
-                if (((i == 0) && zone.map.mapId == 147)
-                        || ((i == 7) && zone.map.mapId == 149)
-                        || ((i == 0) && zone.map.mapId == 151)
-                        || ((i == 0) && zone.map.mapId == 152)
-                        || ((i == 33) && zone.map.mapId == 152)) {
+            if (MapService.gI().isMapKhiGasHuyDiet(zone.map.mapId)) {
+                List<Mob> mobs = zone.mobs;
+                for (int i = 0; i < mobs.size(); i++) {
+                    Mob mob = mobs.get(i);
+                    boolean isBigMob = (mob.tempId == ConstMob.CO_MAY_HUY_DIET);
+                    boolean isSuperMob = ((i == 0 && zone.map.mapId == 147)
+                            || (i == 7 && zone.map.mapId == 149)
+                            || (i == 0 && zone.map.mapId == 151)
+                            || (i == 0 && zone.map.mapId == 152)
+                            || (i == 33 && zone.map.mapId == 152));
 
-                    mob.lvMob = 1;
-                    mob.point.dame = (int) Math.min((long) level * 31 * 5 * mob.tempId * 10, 2_147_483_647);
-                    mob.point.maxHp = (int) Math.min((long) level * 3 * 6700 * mob.tempId * 10, 2_147_483_647);
-                    mob.hoiSinh();
-                    mob.hoiSinhMobPhoBan();
-                } else {
-                    mob.lvMob = mob.tempId == 76 ? 1 : 0;
-                    mob.point.dame = (int) Math.min((long) level * 31 * 5 * mob.tempId, 2_147_483_647);
-                    mob.point.maxHp = (int) Math.min((long) level * 5 * 45 * mob.tempId, 2_147_483_647);
+                    if (isBigMob) {
+                        mob.lvMob = 1;
+                        mob.point.dame = (int) Math.min(Math.max(100L, (long) (20_000_000L * scale)), 20_000_000L);
+                        mob.point.maxHp = (int) Math.min(Math.max(1_000L, (long) (2_000_000_000L * scale)), 2_000_000_000L);
+                    } else if (isSuperMob) {
+                        mob.lvMob = 1;
+                        mob.point.dame = (int) Math.min(Math.max(50L, (long) (10_000_000L * scale)), 10_000_000L);
+                        mob.point.maxHp = (int) Math.min(Math.max(500L, (long) (1_000_000_000L * scale)), 1_000_000_000L);
+                    } else {
+                        mob.lvMob = 0;
+                        mob.point.dame = (int) Math.min(Math.max(20L, (long) (5_000_000L * scale)), 5_000_000L);
+                        mob.point.maxHp = (int) Math.min(Math.max(200L, (long) (500_000_000L * scale)), 500_000_000L);
+                    }
                     mob.hoiSinh();
                     mob.hoiSinhMobPhoBan();
                 }

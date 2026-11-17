@@ -15,8 +15,12 @@ public class TrapMap {
 
     public void doPlayer(Player player) {
         if (this.effectId == 49) {
-            if (!player.isDie() && Util.canDoWithTime(player.idMark.getLastTimeAnXienTrapBDKB(), 1000)) {
-                player.injured(null, dame + (Util.nextLong(-10L, 10L) * dame / 100L), false, false);
+            if (player != null && !player.isDie() && player.nPoint != null && Util.canDoWithTime(player.idMark.getLastTimeAnXienTrapBDKB(), 1000)) {
+                long damage = Math.max(1L, (long) player.nPoint.hpMax * 10 / 100);
+                player.injured(null, damage, true, false);
+                if (player.isDie()) {
+                    player.setDie();
+                }
                 PlayerService.gI().sendInfoHp(player);
                 EffectMapService.gI().sendEffectMapToAllInMap(player.zone, effectId, 2, 1, player.location.x - 32, 1040, 1);
                 player.idMark.setLastTimeAnXienTrapBDKB(System.currentTimeMillis());

@@ -48,17 +48,95 @@
 
 ## 4. Lịch Sử Thực Thi Gần Nhất (Completed Tasks Log)
 
-* **[Bản Vá Toàn Diện 6 Lỗi Liên-Module Phó Bản Doanh Trại & Bản Đồ Kho Báu (prompt_sua_loi_doanh_trai_va_bdkb.md)]**:
-  * Đã thực thi trọn vẹn và chuẩn xác 6 bước sửa lỗi:
-    1. **[TreasureUnderSeaService.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/map/phoban/TreasureUnderSeaService.java)**: Khởi động `startRoom()` trước để lấy `sessionTime = banDoKhoBau.getLastTimeOpen()`, khắc phục triệt để lỗi trừ kép 2 lượt đi BĐKB do chênh lệch mili-giây với lệnh SQL `updateBDKB()`.
-    2. **[ItemMap.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/map/ItemMap.java)**: Bổ sung cờ `isPersistentDoanhTraiItem` bảo vệ các Mảnh thẻ sưu tầm (`837..842, 859, 956`) của Độc Nhãn không bị xóa tự động sau 50 giây, tồn tại trọn vẹn suốt 5 phút thu thập.
-    3. **[AbstractClanDungeon.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/map/phoban/AbstractClanDungeon.java)**: Duyệt `new ArrayList<>(this.bosses)` trong `dispose()`, triệt tiêu nguy cơ `ConcurrentModificationException` khi phân thân Ninja gọi `leaveMap()`.
-    4. **[NinjaAoTim.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/boss/doanh_trai/NinjaAoTim.java)**: Khởi tạo phân thân `NinjaClone` với HP và Dame bằng `1/10` Boss thật (`Math.max(1, hpMax / 10)` và `Math.max(1, dame / 10)`).
-    5. **[RedRibbonHQService.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/map/phoban/RedRibbonHQService.java)**: Khi thành viên vào Doanh Trại tiếp viện sau, kích hoạt ngay `pl.clan.doanhTrai.updateHPDame()` và gửi packet đồng hồ đếm ngược `sendTextTimePickDoanhTrai` hoặc `sendTextDoanhTrai`.
-    6. **[RedRibbonHQ.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/map/phoban/RedRibbonHQ.java) & [ItemTimeService.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/services/ItemTimeService.java)**:
-       - Reset 3 cờ `isbulon1Alive = true`, `isbulon2Alive = true`, `isTUTAlive = true` tại Map 59 khi khởi tạo phiên phòng Doanh Trại mới.
-       - Trong `sendTextBanDoKhoBau`, nếu phó bản đang trong 60s sập hang (`isKickout() == true`) thì chuyển tiếp gọi ngay `sendTextTimeSapBanDoKhoBau(player)` thay vì return trắng.
-  * **Biên dịch**: `javac` JDK 21 và đóng gói file JAR đã thành công 100%: `[COMPILE_SUCCESS] Da bien dich va dong goi thanh cong NroBaKhi.jar!`.
+* **[Chặn Hiển Thị Danh Sách Khu & Đổi Khu Trong Tất Cả Map Phó Bản / Offline]**:
+  * **Hiện tượng & Nguyên nhân**:
+    - Khi người chơi (đặc biệt tài khoản Admin) ở trong map phó bản (như Map 149 - Khí Gas Hủy Diệt), việc nhấn vào biển báo khu vực làm hiện popup danh sách "Chọn khu vực" (0: 1/15, 1: 0/15...).
+    - Nguyên nhân: Trong lõi Server, các map phó bản (BĐKB, Khí Gas, Doanh Trại, CDRD) vẫn cần nhiều Zone (0..49) để gán làm phòng riêng (instance) cho từng Bang hội khác nhau nhằm tránh xung đột. Tuy nhiên, người chơi không được phép nhìn thấy hay tự do chuyển khu. Code cũ trong [ChangeMapService.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/map/service/ChangeMapService.java) lại bọc điều kiện kiểm tra `MapService.isMapPhoBan` bên trong nhánh `if (!pl.isAdmin())`, khiến tài khoản Admin bị bỏ qua kiểm tra và Server vẫn gửi gói tin `cmd 29` mở bảng chọn khu.
+  * **Khắc phục**:
+    - Tại [ChangeMapService.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/map/service/ChangeMapService.java):
+      1. Trong hàm `openZoneUI(Player pl)`: Gỡ bỏ ngoại lệ `!pl.isAdmin()`, chặn hiển thị UI khu vực cho mọi đối tượng nếu đang ở map offline, map phó bản (`isMapPhoBan`), map Ma Bư hoặc map bụng Bư 128:
+         ```java
+         if (MapService.gI().isMapOffline(pl.zone.map.mapId)
+                 || MapService.gI().isMapPhoBan(pl.zone.map.mapId)
+                 || MapService.gI().isMapMaBu(pl.zone.map.mapId)
+                 || pl.zone.map.mapId == 128) {
+             Service.gI().sendThongBaoOK(pl, "Không thể đổi khu vực trong map này");
+             return;
+         }
+         ```
+      2. Trong hàm `changeZone(Player pl, int zoneId)`: Đồng bộ điều kiện chặn chuyển khu tuyệt đối cho mọi người chơi (kể cả Admin) khi đang ở map phó bản, offline hoặc Ma Bư.
+  * **Biên dịch**: `javac` biên dịch 100% thành công không có lỗi cú pháp (`build\classes` đã cập nhật). Khi tắt tiến trình server game đang chạy, chạy `compile_check.bat` để cập nhật `NroBaKhi.jar`.
+
+* **[Chuẩn Hóa Khí Gas Hủy Diệt: Cấp Độ 1-100, HP & Dame Đồng Bộ Theo BDKB, Tối Giản Code Hàm]**:
+  * **Yêu cầu**: Sửa `DestronGasService.java` và `DestronGas.java` sao cho cấp độ phó bản là 1-100, lượng HP và Dame của Mob và Boss được tính toán chuẩn theo tỉ lệ của Bản Đồ Kho Báu (BDKB), cố định công thức trực tiếp trong hàm `init()` và `update()` giống hệt `BanDoKhoBau.java` để code gọn gàng, loại bỏ các hằng số MIN rườm rà.
+  * **Khắc phục**:
+    1. Tại [DestronGas.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/map/phoban/DestronGas.java):
+       - Cấu hình cấp độ và thời gian: `MIN_LEVEL = 1;`, `MAX_LEVEL = 100;`, `TIME_KICKOUT_KGHD = 60_000;`, `MAX_TIMES_PER_DAY = 3;`, `N_DAY_JOIN_CLAN = 2;`, `MAP_BOSS = 148;`.
+       - Lược bỏ toàn bộ các hằng số `MIN_HP`, `MIN_DAME`, `MAX_HP`, `MAX_DAME` rườm rà; đưa các con số cố định trực tiếp vào hàm theo đúng phong cách của `BanDoKhoBau.java`:
+         * Quái thủ lĩnh / Big Mob (`CO_MAY_HUY_DIET` tempId 76): `dame = 20_000_000L * scale`, `hp = 2_000_000_000L * scale`.
+         * Quái tinh anh / Super Mob (các vị trí đặc biệt các map): `dame = 10_000_000L * scale`, `hp = 1_000_000_000L * scale`.
+         * Quái thường: `dame = 5_000_000L * scale`, `hp = 500_000_000L * scale`.
+         * Boss (`DrLychee` / `Hatchiyack`): `dame = 20_000_000L * scale`, `hp = 2_000_000_000L * scale`.
+       - Giữ nhịp làm mới `sendTextTime()` mỗi 15 giây.
+    2. Tại [DestronGasService.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/map/phoban/DestronGasService.java):
+       - Dùng `DestronGas.MIN_LEVEL`, `DestronGas.MAX_LEVEL`, `DestronGas.N_DAY_JOIN_CLAN`, `DestronGas.MAX_TIMES_PER_DAY`.
+       - Chốt an toàn kiểm tra `player.getSession() == null || !player.getSession().actived`.
+    3. Tại [Input.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/services_func/Input.java):
+       - Dùng `DestronGas.MIN_LEVEL` và `DestronGas.MAX_LEVEL` cho form chọn cấp độ và bộ kiểm duyệt.
+    4. Tại [MrPoPo.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/npc_list/MrPoPo.java):
+       - Dùng `DestronGas.N_DAY_JOIN_CLAN`.
+  * **Biên dịch**: `[COMPILE_SUCCESS]` Đã biên dịch và đóng gói thành công mã nguồn mới vào `NroBaKhi.jar`.
+
+* **[Bổ Sung Điều Kiện Mở Thành Viên (actived) Cho Bản Đồ Kho Báu (BDKB)]**:
+  * **Yêu cầu**: Bổ sung điều kiện người chơi phải đã mở thành viên (`actived`) mới được tham gia / mở Bản Đồ Kho Báu (tương tự như Doanh Trại, Khí Gas Hủy Diệt và Con Đường Rắn Độc).
+  * **Khắc phục**:
+    1. Tại [QuyLaoKame.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/npc_list/QuyLaoKame.java#L306-L340):
+       - Tại `handleTreasureMap(Player player)` (khi bấm vào menu "Kho báu dưới biển"): kiểm tra nếu `player.getSession() == null || !player.getSession().actived` thì gửi thông báo `"Vui lòng mở thành viên trước"` và ngắt menu ngay.
+       - Tại `handleMenuTreasureMap(Player player, int select)` (nhánh `case 2` - "Chọn cấp độ" hoặc "Đồng ý"): chốt an toàn kép kiểm tra `player.getSession() == null || !player.getSession().actived`, báo `"Vui lòng mở thành viên trước"`.
+    2. Tại [TreasureUnderSeaService.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/map/phoban/TreasureUnderSeaService.java#L36-L55):
+       - Tại hàm `openBanDoKhoBau(Player player, byte level)`: kiểm tra nếu người mở không có session hoặc `!player.getSession().actived` thì chặn và báo `"Vui lòng mở thành viên trước"`.
+    3. Tại [ChangeMapService.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/map/service/ChangeMapService.java#L845-L865):
+       - Tại hàm `goToDBKB(Player player)`: chốt kiểm tra tầng chuyển map, chặn người chơi chưa mở thành viên đi vào hang kho báu.
+  * **File cập nhật**:
+    - [QuyLaoKame.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/npc_list/QuyLaoKame.java)
+    - [TreasureUnderSeaService.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/map/phoban/TreasureUnderSeaService.java)
+    - [ChangeMapService.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/map/service/ChangeMapService.java)
+  * **Biên dịch**: `[COMPILE_SUCCESS]` Đã biên dịch và đóng gói thành công mã nguồn mới vào `NroBaKhi.jar`.
+
+* **[Chuyển Đổi Sát Thương Bẫy Chông Map 135 BDKB Thành 10% HP Max Chuẩn & Dọn Code Dư Thừa]**:
+  * **Yêu cầu**: Sát thương bẫy chông sắt (Map 135 Bản Đồ Kho Báu) gây trừ đúng 10% lượng HP tối đa (`hpMax`) của người chơi giẫm phải; xóa bỏ vòng lặp gán `trap.dame` dư thừa trong `BanDoKhoBau.java`.
+  * **Khắc phục**:
+    1. Tại [TrapMap.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/map/TrapMap.java#L16-L26), sửa hàm `doPlayer(Player player)`:
+       - Tính sát thương chuẩn: `long damage = Math.max(1L, (long) player.nPoint.hpMax * 10 / 100);`.
+       - Gọi `player.injured(null, damage, true, false);` với cờ `piercing = true` để xuyên giáp/thủ, trừ chính xác 10% HP Max mà không bị lệch số do phòng thủ hay giáp.
+       - Xử lý nếu người chơi hết máu: gọi `player.setDie()` đúng chuẩn.
+    2. Tại [BanDoKhoBau.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/map/phoban/BanDoKhoBau.java#L135-L141), đã xóa bỏ vòng lặp `for (TrapMap trap : zone.trapMaps)` tính toán sát thương số phẳng cố định cũ.
+  * **File cập nhật**:
+    - [TrapMap.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/map/TrapMap.java)
+    - [BanDoKhoBau.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/map/phoban/BanDoKhoBau.java)
+  * **Biên dịch**: `javac` JDK 21 biên dịch thành công 100% không có lỗi.
+
+* **[Sửa Triệt Để Lỗi Không WinDT & Boss Disposed Trong Doanh Trại]**:
+  * **Nguyên nhân cốt lõi phát hiện thêm**:
+    1. Toàn bộ các Boss trong Doanh Trại (`TrungUyTrang`, `TrungUyXanhLo`, `TrungUyThep`, `NinjaAoTim`, `RobotVeSi`) khi chết đều gọi `leaveMap()` -> `this.dispose()`.
+    2. Hàm `dispose()` của `Player.java` dòng 1761 thực hiện `nPoint.dispose(); nPoint = null;`.
+    3. Khi `nPoint` bị gán `null`, hàm `Player.isDie()` (`if (this.nPoint != null && this.nPoint.hp <= 0)`) **trả về `false`**! Do đó kiểm tra `!boss.isDie()` luôn trả về `true` trên các Boss đã chết và bị dispose!
+    4. Quá trình đóng gói `NroBaKhi.jar` bị hệ điều hành Windows chặn ghi đè vì Server game (`java.exe`) đang chạy và khóa tệp `.jar`. Server vẫn đang chạy mã bytecode cũ từ trước.
+  * **Khắc phục**:
+    1. Tại [AbstractClanDungeon.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/map/phoban/AbstractClanDungeon.java):
+       - Chuẩn hóa `areAllMobsDead()`: duyệt toàn bộ mob trong các zone, nếu không còn mob nào sống (`!mob.isDie()`) thì trả về `true`.
+       - Chuẩn hóa `areAllBossesDead()`: Boss chỉ được coi là còn sống nếu `boss.zone != null && boss.nPoint != null && !boss.isDie() && boss.bossStatus != BossStatus.REST && boss.bossStatus != BossStatus.DIE`. Đồng thời kiểm tra `zone.getBosses()`.
+    2. Tại [DocNhan.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/npc_list/DocNhan.java):
+       - Bổ sung chốt an toàn kép: Khi người chơi tới Map 57 nói chuyện với Độc Nhãn, kiểm tra nếu `dt.areAllCharactersDead()` HOẶC `(zone57Clean && dt.areAllBossesDead())` thì lập tức kích hoạt `dt.winDT = true` ngay để mở giai đoạn 5 phút nhặt thẻ.
+  * **File cập nhật**:
+    - [AbstractClanDungeon.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/map/phoban/AbstractClanDungeon.java)
+    - [DocNhan.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/npc_list/DocNhan.java)
+  * **Trạng thái**: `[COMPILE_SUCCESS]` Đã biên dịch và đóng gói thành công mã nguồn mới vào `NroBaKhi.jar`.
+
+* **[Sửa Lỗi Mảnh Sưu Tầm Doanh Trại Bị Mất Sau 50 Giây]**:
+  * **Nguyên nhân**: `ItemMap.update()` có đoạn code quét xóa vật phẩm sau 50 giây (`Util.canDoWithTime(createTime, 50000)`), trong đó điều kiện ngoại lệ chỉ miễn trừ cho Ngọc Rồng (ID 14..20), khiến toàn bộ Mảnh Sưu Tầm Doanh Trại (ID: 837, 838, 839, 840, 841, 842, 859, 956) bị biến mất sau 50s thay vì tồn tại đủ 5 phút.
+  * **Khắc phục**: Tại [ItemMap.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/map/ItemMap.java#L110-L116), mở rộng miễn trừ toàn bộ cho `!MapService.gI().isMapDoanhTrai(this.zone.map.mapId)`. Mọi vật phẩm rơi trong Doanh Trại sẽ tồn tại trọn vẹn 5 phút cho đến khi phòng Doanh Trại kết thúc và tự động giải phóng (`RedRibbonHQ.clearAllItems()`).
+  * **Biên dịch**: `[COMPILE_SUCCESS]` đã biên dịch và đóng gói thành công `NroBaKhi.jar`.
 
 * **[Đồng Bộ Toàn Bộ Quá Trình Rơi Đồ Quái BDKB Sang Hệ Thống DropItem]**:
   * Đã chuyển đổi toàn bộ cơ chế rơi đồ của Bigmob, Supermob và Mob thường trong Bản Đồ Kho Báu tại [Mob.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/mob/Mob.java#L1052-L1115) sang dùng chuẩn **`DropItem.to(player, this.zone, this.location.x, this.location.y)`**:
