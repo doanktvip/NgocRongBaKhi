@@ -160,7 +160,7 @@ public abstract class AbstractClanDungeon implements Runnable {
         this.isOpened = false;
         try {
             this.removeTextTime();
-            for (Boss boss : this.bosses) {
+            for (Boss boss : new ArrayList<>(this.bosses)) {
                 if (boss != null && boss.zone != null) {
                     boss.leaveMap();
                 }

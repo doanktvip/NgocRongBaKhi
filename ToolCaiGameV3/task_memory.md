@@ -48,6 +48,18 @@
 
 ## 4. Lịch Sử Thực Thi Gần Nhất (Completed Tasks Log)
 
+* **[Bản Vá Toàn Diện 6 Lỗi Liên-Module Phó Bản Doanh Trại & Bản Đồ Kho Báu (prompt_sua_loi_doanh_trai_va_bdkb.md)]**:
+  * Đã thực thi trọn vẹn và chuẩn xác 6 bước sửa lỗi:
+    1. **[TreasureUnderSeaService.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/map/phoban/TreasureUnderSeaService.java)**: Khởi động `startRoom()` trước để lấy `sessionTime = banDoKhoBau.getLastTimeOpen()`, khắc phục triệt để lỗi trừ kép 2 lượt đi BĐKB do chênh lệch mili-giây với lệnh SQL `updateBDKB()`.
+    2. **[ItemMap.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/map/ItemMap.java)**: Bổ sung cờ `isPersistentDoanhTraiItem` bảo vệ các Mảnh thẻ sưu tầm (`837..842, 859, 956`) của Độc Nhãn không bị xóa tự động sau 50 giây, tồn tại trọn vẹn suốt 5 phút thu thập.
+    3. **[AbstractClanDungeon.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/map/phoban/AbstractClanDungeon.java)**: Duyệt `new ArrayList<>(this.bosses)` trong `dispose()`, triệt tiêu nguy cơ `ConcurrentModificationException` khi phân thân Ninja gọi `leaveMap()`.
+    4. **[NinjaAoTim.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/boss/doanh_trai/NinjaAoTim.java)**: Khởi tạo phân thân `NinjaClone` với HP và Dame bằng `1/10` Boss thật (`Math.max(1, hpMax / 10)` và `Math.max(1, dame / 10)`).
+    5. **[RedRibbonHQService.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/map/phoban/RedRibbonHQService.java)**: Khi thành viên vào Doanh Trại tiếp viện sau, kích hoạt ngay `pl.clan.doanhTrai.updateHPDame()` và gửi packet đồng hồ đếm ngược `sendTextTimePickDoanhTrai` hoặc `sendTextDoanhTrai`.
+    6. **[RedRibbonHQ.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/map/phoban/RedRibbonHQ.java) & [ItemTimeService.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/services/ItemTimeService.java)**:
+       - Reset 3 cờ `isbulon1Alive = true`, `isbulon2Alive = true`, `isTUTAlive = true` tại Map 59 khi khởi tạo phiên phòng Doanh Trại mới.
+       - Trong `sendTextBanDoKhoBau`, nếu phó bản đang trong 60s sập hang (`isKickout() == true`) thì chuyển tiếp gọi ngay `sendTextTimeSapBanDoKhoBau(player)` thay vì return trắng.
+  * **Biên dịch**: `javac` JDK 21 và đóng gói file JAR đã thành công 100%: `[COMPILE_SUCCESS] Da bien dich va dong goi thanh cong NroBaKhi.jar!`.
+
 * **[Đồng Bộ Toàn Bộ Quá Trình Rơi Đồ Quái BDKB Sang Hệ Thống DropItem]**:
   * Đã chuyển đổi toàn bộ cơ chế rơi đồ của Bigmob, Supermob và Mob thường trong Bản Đồ Kho Báu tại [Mob.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/mob/Mob.java#L1052-L1115) sang dùng chuẩn **`DropItem.to(player, this.zone, this.location.x, this.location.y)`**:
     1. **Bigmob**:

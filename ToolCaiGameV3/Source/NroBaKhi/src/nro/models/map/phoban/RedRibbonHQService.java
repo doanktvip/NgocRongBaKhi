@@ -71,6 +71,12 @@ public class RedRibbonHQService extends AbstractClanDungeonService<RedRibbonHQ> 
         }
         if (pl.clan.doanhTrai != null) {
             ChangeMapService.gI().changeMapInYard(pl, 53, -1, 60);
+            pl.clan.doanhTrai.updateHPDame();
+            if (pl.clan.doanhTrai.isTimePicking) {
+                nro.models.services.ItemTimeService.gI().sendTextTimePickDoanhTrai(pl);
+            } else {
+                nro.models.services.ItemTimeService.gI().sendTextDoanhTrai(pl);
+            }
             return;
         }
         if (pl.clan.lastTimeOpenDoanhTrai > 0 && !Util.canDoWithTime(pl.clan.lastTimeOpenDoanhTrai, TIME_RESET_DOANH_TRAI)) {

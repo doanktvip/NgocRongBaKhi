@@ -63,23 +63,25 @@ public class TreasureUnderSeaService extends AbstractClanDungeonService<BanDoKho
                             return;
                         }
 
-                        long now = System.currentTimeMillis();
+                        InventoryService.gI().subQuantityItemsBag(player, item, 1);
+                        InventoryService.gI().sendItemBags(player);
+
+                        banDoKhoBau.startRoom(player.clan, level);
+                        long sessionTime = banDoKhoBau.getLastTimeOpen();
+
                         if (player.clan.timesPerDayBDKB == 0) {
-                            player.clan.lastTimeOpenBanDoKhoBau = now;
+                            player.clan.lastTimeOpenBanDoKhoBau = sessionTime;
                         }
                         player.clan.timesPerDayBDKB++;
-                        player.clan.timeOpenBanDoKhoBau = now;
+                        player.clan.timeOpenBanDoKhoBau = sessionTime;
                         player.clan.updateBDKB();
 
                         if (player.timesPerDayBDKB == 0) {
-                            player.lastTimeJoinBDKB = now;
+                            player.lastTimeJoinBDKB = sessionTime;
                         }
                         player.timesPerDayBDKB++;
-                        player.lastTimeOpenBDKBSession = now;
+                        player.lastTimeOpenBDKBSession = sessionTime;
 
-                        InventoryService.gI().subQuantityItemsBag(player, item, 1);
-                        InventoryService.gI().sendItemBags(player);
-                        banDoKhoBau.startRoom(player.clan, level);
                         ChangeMapService.gI().goToDBKB(player);
                     } else {
                         Service.gI().sendThongBao(player, "Hang kho báu đã đầy, hãy quay lại sau 30 phút");
