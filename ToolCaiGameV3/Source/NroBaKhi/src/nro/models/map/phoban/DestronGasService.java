@@ -12,31 +12,27 @@ import nro.models.utils.Util;
 /**
  * Service quản lý hoạt động Khí Gas Hủy Diệt (DestronGas)
  */
-public class DestronGasService {
+public class DestronGasService extends AbstractClanDungeonService<DestronGas> {
 
-    private static DestronGasService instance;
-
-    public static DestronGasService gI() {
-        if (instance == null) {
-            instance = new DestronGasService();
-        }
-        return instance;
+    private static final class Holder {
+        private static final DestronGasService INSTANCE = new DestronGasService();
     }
 
-    public List<DestronGas> khiGasHuyDiets;
+    public static DestronGasService gI() {
+        return Holder.INSTANCE;
+    }
+
+    public List<DestronGas> khiGasHuyDiets = this.rooms;
 
     private DestronGasService() {
-        this.khiGasHuyDiets = new ArrayList<>();
-        for (int i = 0; i < DestronGas.AVAILABLE; i++) {
-            this.khiGasHuyDiets.add(new DestronGas(i));
-        }
+        super(DestronGas.AVAILABLE, DestronGas::new);
     }
 
     public void addMapKhiGasHuyDiet(int id, Zone zone) {
-        this.khiGasHuyDiets.get(id).getZones().add(zone);
+        registerZone(id, zone);
     }
 
-    public void openKhiGasHuyDiet(Player player, byte level) {
+    public synchronized void openKhiGasHuyDiet(Player player, byte level) {
         Clan clan = player.clan;
         if (clan != null) {
             ClanMember cm = clan.getClanMember((int) player.id);
@@ -50,13 +46,7 @@ public class DestronGasService {
                 if (player.clan.KhiGasHuyDiet == null) {
                     if (level >= 1 && level <= 110) {
                         if (clan.isLeader(player)) {
-                            DestronGas khiGasHuyDiet = null;
-                            for (DestronGas kghd : this.khiGasHuyDiets) {
-                                if (!kghd.isOpened) {
-                                    khiGasHuyDiet = kghd;
-                                    break;
-                                }
-                            }
+                            DestronGas khiGasHuyDiet = findAvailableRoom();
                             if (khiGasHuyDiet != null) {
                                 if (Util.isAfterMidnight(player.clan.lastTimeOpenKhiGasHuyDiet)) {
                                     player.clan.timesPerDayKGHD = 1;

@@ -1,7 +1,5 @@
 package nro.models.map.phoban;
 
-import nro.models.utils.Functions;
-import nro.models.boss.Boss;
 import nro.models.boss.khi_gas.DrLychee;
 import nro.models.clan.Clan;
 import nro.models.map.Zone;
@@ -11,15 +9,11 @@ import nro.models.services.ItemTimeService;
 import nro.models.map.service.MapService;
 import nro.models.services.Service;
 import nro.models.map.service.ChangeMapService;
+import nro.models.utils.TimeUtil;
 import nro.models.utils.Util;
-
-import java.util.ArrayList;
 import java.util.List;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
-import nro.models.server.Maintenance;
-import nro.models.map.service.ItemMapService;
-import nro.models.utils.TimeUtil;
 
 @Data
 @EqualsAndHashCode(callSuper = false)
@@ -29,79 +23,75 @@ public class DestronGas extends AbstractClanDungeon {
     public static final int AVAILABLE = 50;
     public static final int TIME_KHI_GAS_HUY_DIET = 1800000;
     public static final int N_PLAYER_CLAN = 0;
-    private long lastTimeUpdateMessage;
-    private boolean kickoutkghd;
-    private long timeKickOutKGHD;
-    public List<Boss> bosses = new ArrayList<>();
     private boolean callBoss;
     public boolean hatchiyatchDead;
 
     public DestronGas(int id) {
-        this.id = id;
+        super(id);
     }
 
     @Override
-    public void run() {
-        while (!Maintenance.isRunning && isOpened) {
+    public void update() {
+        if (!isOpened) {
+            return;
+        }
+        if (isTimeExpired(TIME_KHI_GAS_HUY_DIET)) {
+            finish();
+            dispose();
+            return;
+        }
+
+        boolean allMobsDead = this.areAllMobsDead();
+
+        if (allMobsDead && !callBoss) {
             try {
-                long startTime = System.currentTimeMillis();
-                update();
-                Functions.sleep(Math.max(150 - (System.currentTimeMillis() - startTime), 10));
-            } catch (Exception e) {
-                e.printStackTrace();
+                long bossDamage = (1000 * level);
+                long bossMaxHealth = (15000000 * level);
+                bossDamage = Math.min(bossDamage, 200000000L);
+                bossMaxHealth = Math.min(bossMaxHealth, 2000000000L);
+                bosses.add(new DrLychee(
+                        getMapById(148),
+                        clan,
+                        level,
+                        (int) bossDamage,
+                        (int) bossMaxHealth
+                ));
+                callBoss = true;
+            } catch (Exception exception) {
+                nro.models.utils.Logger.logException(DestronGas.class, exception);
             }
         }
-    }
 
-    public void update() {
-        if (isOpened) {
-            if (Util.canDoWithTime(lastTimeOpen, TIME_KHI_GAS_HUY_DIET) || (kickoutkghd && Util.canDoWithTime(timeKickOutKGHD, 60000))) {
-                finish();
-                dispose();
-            }
-
-            boolean allCharactersDead = this.areAllMobsDead();
-
-            if (allCharactersDead && !callBoss) {
-                try {
-                    long bossDamage = (1000 * level);
-                    long bossMaxHealth = (15000000 * level);
-                    bossDamage = Math.min(bossDamage, 200000000L);
-                    bossMaxHealth = Math.min(bossMaxHealth, 2000000000L);
-                    bosses.add(new DrLychee(
-                            getMapById(148),
-                            clan,
-                            level,
-                            (int) bossDamage,
-                            (int) bossMaxHealth
-                    ));
-                    callBoss = true;
-                } catch (Exception exception) {
-                    nro.models.utils.Logger.logException(DestronGas.class, exception);
-                }
-            }
-
-            if (!kickoutkghd && (hatchiyatchDead || Util.canDoWithTime(lastTimeOpen, TIME_KHI_GAS_HUY_DIET - 60000))) {
-                kickoutkghd = true;
-                timeKickOutKGHD = System.currentTimeMillis();
-                for (Zone zone : zones) {
+        if (!kickout && (hatchiyatchDead || Util.canDoWithTime(lastTimeOpen, TIME_KHI_GAS_HUY_DIET - 60000))) {
+            kickout = true;
+            timeKickOut = System.currentTimeMillis();
+            for (Zone zone : zones) {
+                if (zone != null) {
                     List<Player> players = zone.getPlayers();
-                    for (Player pl : players) {
-                        Service.gI().sendThongBao(pl, "Nơi này sắp nổ tung mau chạy đi");
-                    }
-
-                }
-            }
-            if (kickoutkghd && Util.canDoWithTime(lastTimeUpdateMessage, 10000)) {
-                lastTimeUpdateMessage = System.currentTimeMillis();
-                for (Zone zone : zones) {
-                    List<Player> players = zone.getPlayers();
-                    for (Player pl : players) {
-                        Service.gI().sendThongBao(pl, "Về làng Aru sau " + TimeUtil.getTimeLeft(timeKickOutKGHD, 60) + " nữa");
+                    if (players != null) {
+                        for (Player pl : players) {
+                            if (pl != null) {
+                                Service.gI().sendThongBao(pl, "Nơi này sắp nổ tung mau chạy đi");
+                            }
+                        }
                     }
                 }
             }
-
+        }
+        if (kickout && Util.canDoWithTime(lastTimeSendNotify, 10000)) {
+            lastTimeSendNotify = System.currentTimeMillis();
+            for (Zone zone : zones) {
+                if (zone != null) {
+                    List<Player> players = zone.getPlayers();
+                    if (players != null) {
+                        for (Player pl : players) {
+                            if (pl != null) {
+                                Service.gI().sendThongBao(pl, "Về làng Aru sau " + TimeUtil.getTimeLeft(timeKickOut, 60) + " nữa");
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -114,11 +104,15 @@ public class DestronGas extends AbstractClanDungeon {
             this.clan.playerOpenKhiGasHuyDiet = plOpen;
             this.clan.KhiGasHuyDiet = this;
             this.callBoss = false;
+            this.kickout = false;
             this.isOpened = true;
             this.init();
-            sendTextKhiGasHuyDiet();
+            sendTextTime();
         } catch (Exception e) {
-            plOpen.clan.lastTimeOpenKhiGasHuyDiet = 0;
+            nro.models.utils.Logger.logException(DestronGas.class, e);
+            if (plOpen != null && plOpen.clan != null) {
+                plOpen.clan.lastTimeOpenKhiGasHuyDiet = 0;
+            }
             this.dispose();
         }
     }
@@ -147,20 +141,16 @@ public class DestronGas extends AbstractClanDungeon {
     }
 
     private void init() {
-        //Hồi sinh quái
+        // Hồi sinh quái
         for (Zone zone : this.zones) {
             List<Mob> mobs = zone.mobs;
             for (int i = 0; i < mobs.size(); i++) {
                 Mob mob = mobs.get(i);
                 if (((i == 0) && zone.map.mapId == 147)
-                        || // Quái 76 xuất hiện thứ 1 ở Map 147 (Sa mạc)
-                        ((i == 7) && zone.map.mapId == 149)
-                        || // Quái 76 xuất hiện thứ 8 ở Map 149 (Thành phố Santa)
-                        ((i == 0) && zone.map.mapId == 151)
-                        || // Quái 76 xuất hiện thứ 1 ở Map 151 (Hành tinh bóng tối)
-                        ((i == 0) && zone.map.mapId == 152)
-                        || // Quái 76 xuất hiện thứ 1 ở Map 152 (Vùng đất băng giá)
-                        ((i == 33) && zone.map.mapId == 152)) { // Quái 76 xuất hiện thứ 34 ở Map 152 (Vùng đất băng giá)
+                        || ((i == 7) && zone.map.mapId == 149)
+                        || ((i == 0) && zone.map.mapId == 151)
+                        || ((i == 0) && zone.map.mapId == 152)
+                        || ((i == 33) && zone.map.mapId == 152)) {
 
                     mob.lvMob = 1;
                     mob.point.dame = (int) Math.min((long) level * 31 * 5 * mob.tempId * 10, 2_147_483_647);
@@ -176,58 +166,55 @@ public class DestronGas extends AbstractClanDungeon {
                 }
             }
         }
-        Thread.ofVirtual().name("Khí Gas Hủy Diệt: " + this.clan.name).start(this);
+        startDungeonThread("Khí Gas Hủy Diệt");
     }
 
-    //kết thúc khí gas hủy diệt
-    public void finish() {
-        for (Zone zone : zones) {
-            for (int i = zone.getPlayers().size() - 1; i >= 0; i--) {
-                if (i < zone.getPlayers().size()) {
-                    Player pl = zone.getPlayers().get(i);
-                    sendThanhTichKhiGas(pl);
-                    kickOutOfKGHD(pl);
-                }
+    @Override
+    protected void kickOut(Player player) {
+        if (player != null && player.zone != null && player.zone.map != null) {
+            if (MapService.gI().isMapKhiGasHuyDiet(player.zone.map.mapId)) {
+                ChangeMapService.gI().changeMapBySpaceShip(player, 0, -1, -1);
             }
-
         }
     }
 
-    private void kickOutOfKGHD(Player player) {
-        if (MapService.gI().isMapKhiGasHuyDiet(player.zone.map.mapId)) {
-            ChangeMapService.gI().changeMapBySpaceShip(player, 0, -1, -1);
-        }
-    }
-
-    private void sendTextKhiGasHuyDiet() {
-        for (Player pl : this.clan.membersInGame) {
-            ItemTimeService.gI().sendTextKhiGasHuyDiet(pl);
-        }
-    }
-
-    private void removeTextKhiGasHuyDiet() {
+    @Override
+    protected void sendTextTime() {
         if (this.clan != null && this.clan.membersInGame != null) {
             for (Player pl : this.clan.membersInGame) {
-                ItemTimeService.gI().removeTextKhiGasHuyDiet(pl);
+                if (pl != null) {
+                    ItemTimeService.gI().sendTextKhiGasHuyDiet(pl);
+                }
             }
         }
     }
 
-    public void dispose() {
-        this.clearAllItems();
-        for (Boss boss : bosses) {
-            if (boss != null && !boss.isDie()) {
-                boss.leaveMap();
+    @Override
+    protected void removeTextTime() {
+        if (this.clan != null && this.clan.membersInGame != null) {
+            for (Player pl : this.clan.membersInGame) {
+                if (pl != null) {
+                    ItemTimeService.gI().removeTextKhiGasHuyDiet(pl);
+                }
             }
         }
-        this.removeTextKhiGasHuyDiet();
-        this.bosses.clear();
-        this.isOpened = false;
+    }
+
+    @Override
+    protected void unlinkClan() {
         if (this.clan != null) {
             this.clan.KhiGasHuyDiet = null;
-            this.clan = null;
         }
-        this.kickoutkghd = false;
+    }
+
+    @Override
+    protected void onPlayerFinish(Player player) {
+        sendThanhTichKhiGas(player);
+    }
+
+    @Override
+    protected void onResetExtraState() {
         this.hatchiyatchDead = false;
+        this.callBoss = false;
     }
 }

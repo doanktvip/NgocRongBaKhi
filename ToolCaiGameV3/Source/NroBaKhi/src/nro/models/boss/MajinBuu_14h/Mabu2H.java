@@ -5,6 +5,7 @@ import nro.models.boss.BossID;
 import nro.models.boss.BossesData;
 import nro.models.boss.Boss_Manager.FinalBossManager;
 import nro.models.consts.BossStatus;
+import nro.models.consts.ConstItem;
 import nro.models.consts.ConstTaskBadges;
 import nro.models.player.Player;
 import nro.models.skill.Skill;
@@ -35,9 +36,15 @@ public class Mabu2H extends Boss {
 
         // Rơi duy nhất đúng 1 món theo bảng tỉ lệ phân tầng (1% Thần Linh, 5% Đồ Sao, 94% Ngọc Rồng)
         this.drop(plKill).pickOne()
-                .rate(80).equipment(13)
+                .rate(1).thanLinh()
                 .rate(5).equipment(9, 11).randomStar(100)
-                .otherwise().random(15, 16, 17, 18, 19, 20)
+                .otherwise().random(
+                        ConstItem.NGOC_RONG_2_SAO,
+                        ConstItem.NGOC_RONG_3_SAO,
+                        ConstItem.NGOC_RONG_4_SAO,
+                        ConstItem.NGOC_RONG_5_SAO,
+                        ConstItem.NGOC_RONG_6_SAO,
+                        ConstItem.NGOC_RONG_7_SAO)
                 .execute();
     }
 

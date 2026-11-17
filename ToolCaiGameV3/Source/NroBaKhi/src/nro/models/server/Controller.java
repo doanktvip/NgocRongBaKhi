@@ -182,8 +182,10 @@ public class Controller implements IMessageHandler {
                                 ChangeMapService.gI().changeMap(player, 160, -1, -1, 5);
                             }
                         } else if (player.type == 3 && player.maxTime == 5) {
-                            ChangeMapService.gI().changeMap(player, player.idMark.getZoneKhiGasHuyDiet(), player.idMark.getXMapKhiGasHuyDiet(), player.idMark.getYMapKhiGasHuyDiet());
-                            player.idMark.setZoneKhiGasHuyDiet(null);
+                            if (player.idMark != null && player.idMark.getZoneKhiGasHuyDiet() != null) {
+                                ChangeMapService.gI().changeMap(player, player.idMark.getZoneKhiGasHuyDiet(), player.idMark.getXMapKhiGasHuyDiet(), player.idMark.getYMapKhiGasHuyDiet());
+                                player.idMark.setZoneKhiGasHuyDiet(null);
+                            }
                         } else if (player.type == 4 && player.maxTime == 5) {
                             if (player.idMark != null && player.idMark.isGoToKGHD()) {
                                 ChangeMapService.gI().changeMap(player, MapService.gI().getMapCanJoin(player, 149, -1), 100 + (Util.nextInt(-10, 10)), 336);

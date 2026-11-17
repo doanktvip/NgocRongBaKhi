@@ -120,6 +120,7 @@ public class ServerManager {
             AutoMaintenance.gI().start();
             SessionManager.gI().startCleanupThread();
             new Thread(ShenronEventManager.gI(), "Update Shenron").start();
+            nro.models.map.timed_map.TimedMapManager.gI().start();
 
             BossManager.gI().loadBoss();
             Manager.MAPS.forEach(nro.models.map.Map::initBoss);

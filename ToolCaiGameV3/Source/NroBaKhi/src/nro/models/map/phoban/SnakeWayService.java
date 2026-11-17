@@ -14,31 +14,27 @@ import nro.models.utils.Util;
 /**
  * Service quản lý hoạt động Con Đường Rắn Độc (SnakeWay)
  */
-public class SnakeWayService {
+public class SnakeWayService extends AbstractClanDungeonService<SnakeWay> {
 
-    private static SnakeWayService instance;
-
-    public static SnakeWayService gI() {
-        if (instance == null) {
-            instance = new SnakeWayService();
-        }
-        return instance;
+    private static final class Holder {
+        private static final SnakeWayService INSTANCE = new SnakeWayService();
     }
 
-    public List<SnakeWay> conDuongRanDocs;
+    public static SnakeWayService gI() {
+        return Holder.INSTANCE;
+    }
+
+    public List<SnakeWay> conDuongRanDocs = this.rooms;
 
     private SnakeWayService() {
-        this.conDuongRanDocs = new ArrayList<>();
-        for (int i = 0; i < SnakeWay.AVAILABLE; i++) {
-            this.conDuongRanDocs.add(new SnakeWay(i));
-        }
+        super(SnakeWay.AVAILABLE, SnakeWay::new);
     }
 
     public void addMapConDuongRanDoc(int id, Zone zone) {
-        this.conDuongRanDocs.get(id).getZones().add(zone);
+        registerZone(id, zone);
     }
 
-    public void openConDuongRanDoc(Player player, byte level) {
+    public synchronized void openConDuongRanDoc(Player player, byte level) {
         Clan clan = player.clan;
         if (clan != null) {
             ClanMember cm = clan.getClanMember((int) player.id);
@@ -55,13 +51,7 @@ public class SnakeWayService {
                 }
                 if (player.clan.ConDuongRanDoc == null) {
                     if (level >= 1 && level <= 110) {
-                        SnakeWay conDuongRanDoc = null;
-                        for (SnakeWay cdrd : this.conDuongRanDocs) {
-                            if (!cdrd.isOpened) {
-                                conDuongRanDoc = cdrd;
-                                break;
-                            }
-                        }
+                        SnakeWay conDuongRanDoc = findAvailableRoom();
                         if (conDuongRanDoc != null) {
                             conDuongRanDoc.openConDuongRanDoc(player, player.clan, level);
                         } else {

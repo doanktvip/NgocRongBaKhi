@@ -4,6 +4,7 @@ import nro.models.boss.Boss;
 import nro.models.boss.BossID;
 import nro.models.boss.BossesData;
 import nro.models.consts.BossStatus;
+import nro.models.consts.ConstItem;
 import nro.models.player.Player;
 
 public class SO3 extends Boss {
@@ -34,7 +35,7 @@ public class SO3 extends Boss {
             return;
         }
         super.reward(plKill);
-        this.drop(plKill).random(18, 19, 20).rate(80).execute();
+        this.drop(plKill).random(ConstItem.NGOC_RONG_5_SAO, ConstItem.NGOC_RONG_6_SAO, ConstItem.NGOC_RONG_7_SAO).rate(80).execute();
         this.rewardEventPoint(plKill, 1);
     }
 

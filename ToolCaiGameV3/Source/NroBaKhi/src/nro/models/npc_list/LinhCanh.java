@@ -21,13 +21,14 @@ public class LinhCanh extends Npc {
         if (!canOpenNpc(player)) {
             return;
         }
+        if (player.getSession() == null || !player.getSession().actived) {
+            NpcService.gI().createTutorial(player, tempId, this.avartar,
+                    "Vui lòng mở thành viên trước");
+            return;
+        }
         if (player.clan == null) {
             NpcService.gI().createTutorial(player, tempId, this.avartar,
                     "Chỉ tiếp các bang hội, miễn tiếp khách vãng lai");
-            return;
-        }
-        if (player.getSession() == null || !player.getSession().actived) {
-            Service.gI().sendThongBao(player, "Vui lòng mở thành viên trước");
             return;
         }
         if (player.clan.getMembers().size() < RedRibbonHQ.N_PLAYER_CLAN) {
@@ -46,7 +47,7 @@ public class LinhCanh extends Npc {
             String statusText;
             if (player.clan.doanhTrai.isTimePicking) {
                 timeLeft = TimeUtil.getTimeLeft(player.clan.doanhTrai.lastTimePick, RedRibbonHQ.TIME_PICK_DOANH_TRAI / 1000);
-                statusText = "Bang hội của ngươi đã tiêu diệt trại độc nhãn và đang nhặt ngọc\nThời gian còn lại là "
+                statusText = "Bang hội của ngươi đã tiêu diệt trại độc nhãn và đang thu thập mảnh sưu tầm\nThời gian còn lại là "
                         + timeLeft + ". Ngươi có muốn tham gia không?";
             } else {
                 timeLeft = TimeUtil.getTimeLeft(player.clan.doanhTrai.getLastTimeOpen(), RedRibbonHQ.TIME_DOANH_TRAI / 1000);
@@ -57,19 +58,12 @@ public class LinhCanh extends Npc {
                     "Tham gia", "Không", "Hướng\ndẫn\nthêm");
             return;
         }
-        // 2. Kiểm tra giới hạn lượt đi trong ngày TRƯỚC khi bắt gọi đồng đội
-        if (player.clan.haveGoneDoanhTrai && !Util.isAfterMidnight(player.clan.lastTimeOpenDoanhTrai)) {
-            if (!Util.isAfterMidnight(player.lastTimeJoinDT)) {
-                NpcService.gI().createTutorial(player, tempId, this.avartar,
-                        "Hôm nay bạn đã tham gia doanh trại rồi, hẹn gặp bạn vào ngày mai");
-                return;
-            }
-            String openerName = (player.clan.playerOpenDoanhTrai != null) ? player.clan.playerOpenDoanhTrai.name : "đồng đội";
+        // 2. Kiểm tra giới hạn thời gian hồi (đúng 24 giờ) của Bang Hội khi Mở Đợt Mới
+        if (player.clan.lastTimeOpenDoanhTrai > 0 && !Util.canDoWithTime(player.clan.lastTimeOpenDoanhTrai, RedRibbonHQ.TIME_RESET_DOANH_TRAI)) {
             createOtherMenu(player, ConstNpc.IGNORE_MENU,
-                    "Bang hội của ngươi ngày hôm nay đã vào 1 lần rồi (thành viên " + openerName + ") lúc "
-                    + TimeUtil.formatTime(player.clan.lastTimeOpenDoanhTrai, "HH:mm") + "\n"
-                    + "Nên ngươi không thể vào được nữa.\n"
-                    + "Hãy chờ đến ngày mai để có thể vào miễn phí", "OK", "Hướng\ndẫn\nthêm");
+                    "Bang hội của ngươi đã tham gia lúc "
+                    + TimeUtil.formatTime(player.clan.lastTimeOpenDoanhTrai, "HH:mm dd/MM") + ".\n"
+                    + "Vui lòng chờ " + TimeUtil.getDateLeft(player.clan.lastTimeOpenDoanhTrai, 86400) + " nữa để mở đợt mới.", "OK", "Hướng\ndẫn\nthêm");
             return;
         }
         // 3. Kiểm tra số đồng đội đứng gần (nếu N_PLAYER_MAP > 0)

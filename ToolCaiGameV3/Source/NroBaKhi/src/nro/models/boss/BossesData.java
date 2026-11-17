@@ -1135,7 +1135,161 @@ public class BossesData {
             })
             .secondsRest(REST_10_S)
             .build();
+    //========================BOSS DOANH TRAI========================
+    public static BossData TRUNG_UY_TRANG(int dame, int hp) {
+        return BossData.builder()
+                .name("Trung uý Trắng")
+                .gender(ConstPlayer.TRAI_DAT)
+                .outfit(new short[]{141, 142, 143, -1, -1, -1})
+                .dame(dame)
+                .hp(new int[]{hp})
+                .mapJoin(new int[]{59})
+                .skillTemp(new int[][]{
+                    {Skill.DEMON, 7},
+                    {Skill.DRAGON, 7},
+                    {Skill.GALICK, 7},
+                    {Skill.MASENKO, 7},
+                    {Skill.KAMEJOKO, 7},
+                    {Skill.ANTOMIC, 7}
+                })
+                .textS(new String[]{})
+                .textM(new String[]{
+                    "|-1|Xem mi dùng cách nào hạ được ta",
+                    "|-1|Ha ha ha",
+                    "|-1|Bulon đâu tiêu diệt hết bọn chúng cho ta"
+                })
+                .textE(new String[]{})
+                .secondsRest(REST_1_M)
+                .build();
+    }
+    
+    public static BossData TRUNG_UY_XANH_LO(int dame, int hp) {
+        return BossData.builder()
+                .name("Trung uý Xanh Lơ")
+                .gender(ConstPlayer.TRAI_DAT)
+                .outfit(new short[]{135, 136, 137, -1, -1, -1})
+                .dame(dame)
+                .hp(new int[]{hp})
+                .mapJoin(new int[]{62})
+                .skillTemp(new int[][]{
+                    {Skill.DEMON, 7},
+                    {Skill.DRAGON, 7},
+                    {Skill.GALICK, 7},
+                    {Skill.MASENKO, 7},
+                    {Skill.KAMEJOKO, 7},
+                    {Skill.ANTOMIC, 7},
+                    {Skill.THAI_DUONG_HA_SAN, 7}
+                })
+                .textS(new String[]{})
+                .textM(new String[]{
+                    "|-1|Xem các ngươi mạnh đến đâu",
+                    "|-1|He he he"
+                })
+                .textE(new String[]{})
+                .secondsRest(REST_1_M)
+                .build();
+    }
 
+    public static BossData TRUNG_UY_THEP(int dame, int hp) {
+        return BossData.builder()
+                .name("Trung uý Thép")
+                .gender(ConstPlayer.TRAI_DAT)
+                .outfit(new short[]{129, 130, 131, -1, -1, -1})
+                .dame(dame)
+                .hp(new int[]{hp})
+                .mapJoin(new int[]{55})
+                .skillTemp(new int[][]{
+                    {Skill.DEMON, 7},
+                    {Skill.DRAGON, 7},
+                    {Skill.GALICK, 7},
+                    {Skill.MASENKO, 7},
+                    {Skill.KAMEJOKO, 7},
+                    {Skill.ANTOMIC, 7}
+                })
+                .textS(new String[]{})
+                .textM(new String[]{
+                    "|-1|Nếu bọn mi muốn lên tiếp tầng lầu trên",
+                    "|-1|Phải bước qua xác chết của ta đã"
+                })
+                .textE(new String[]{})
+                .secondsRest(REST_1_M)
+                .build();
+    }
+
+    public static BossData NINJA_AO_TIM(int dame, int hp) {
+        return BossData.builder()
+                .name("Ninja Áo Tím")
+                .gender(ConstPlayer.TRAI_DAT)
+                .outfit(new short[]{123, 124, 125, -1, -1, -1})
+                .dame(dame)
+                .hp(new int[]{hp})
+                .mapJoin(new int[]{54})
+                .skillTemp(new int[][]{
+                    {Skill.DEMON, 7},
+                    {Skill.DRAGON, 7},
+                    {Skill.GALICK, 7},
+                    {Skill.MASENKO, 7},
+                    {Skill.KAMEJOKO, 7},
+                    {Skill.ANTOMIC, 7}
+                })
+                .textS(new String[]{})
+                .textM(new String[]{
+                    "|-1|Ta sẽ xé xác ngươi ra thành trăm mảnh",
+                    "|-1|Ha ha ha"
+                })
+                .textE(new String[]{})
+                .secondsRest(REST_1_M)
+                .build();
+    }
+
+    public static BossData NINJA_CLONE(int dame, int hp) {
+        return BossData.builder()
+                .name("Ninja Áo Tím")
+                .gender(ConstPlayer.TRAI_DAT)
+                .outfit(new short[]{123, 124, 125, -1, -1, -1})
+                .dame(dame)
+                .hp(new int[]{hp})
+                .mapJoin(new int[]{54})
+                .skillTemp(new int[][]{
+                    {Skill.DEMON, 7},
+                    {Skill.DRAGON, 7},
+                    {Skill.GALICK, 7},
+                    {Skill.MASENKO, 7},
+                    {Skill.KAMEJOKO, 7},
+                    {Skill.ANTOMIC, 7}
+                })
+                .textS(new String[]{})
+                .textM(new String[]{
+                    "|-1|Ta sẽ xé xác ngươi ra thành trăm mảnh",
+                    "|-1|Ha ha ha"
+                })
+                .textE(new String[]{})
+                .secondsRest(REST_1_M)
+                .build();
+    }
+
+    public static BossData ROBOT_VE_SI(int id, int dame, int hp) {
+        return BossData.builder()
+                .name("Rôbốt Vệ Sĩ 0" + id)
+                .gender(ConstPlayer.TRAI_DAT)
+                .outfit(new short[]{138, 139, 140, -1, -1, -1})
+                .dame(dame)
+                .hp(new int[]{hp})
+                .mapJoin(new int[]{57})
+                .skillTemp(new int[][]{
+                    {Skill.DEMON, 7},
+                    {Skill.DRAGON, 7},
+                    {Skill.GALICK, 7},
+                    {Skill.MASENKO, 7},
+                    {Skill.KAMEJOKO, 7},
+                    {Skill.ANTOMIC, 7}
+                })
+                .textS(new String[]{})
+                .textM(new String[]{})
+                .textE(new String[]{})
+                .secondsRest(REST_1_M)
+                .build();
+    }
     //========================BOSS 12H========================
     public static final BossData MABU_12H = new BossData(
             "Mabư",

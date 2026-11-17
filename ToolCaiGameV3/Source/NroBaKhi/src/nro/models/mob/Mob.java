@@ -4,6 +4,7 @@ import nro.models.services.InventoryService;
 import nro.models.services.Service;
 import nro.models.services.TaskService;
 import nro.models.map.service.ItemMapService;
+import nro.models.consts.ConstItem;
 import nro.models.consts.ConstMap;
 import nro.models.consts.ConstMob;
 import nro.models.consts.ConstTask;
@@ -14,6 +15,7 @@ import nro.models.map.Zone;
 import nro.models.player.Location;
 import nro.models.player.Pet;
 import nro.models.player.Player;
+import nro.models.player.DropItem;
 import nro.models.network.Message;
 import java.io.IOException;
 import nro.models.server.Maintenance;
@@ -773,15 +775,17 @@ public class Mob {
             }
         }
         if (MapService.gI().isMapDoanhTrai(mapid)) {
-            int baseTileDrop = 20;
-            int tileDrop = baseTileDrop;
-            if (player.itemTime.isUseCoBonLa) {
-                tileDrop = (int) (baseTileDrop * 1.15);
-            }
-
-            if (Util.isTrue(tileDrop, 100)) {
-                int soLuong = 1;
-                list.add(new ItemMap(zone, 1778, soLuong, x, yEnd, player.id));
+            int cardId = switch (this.tempId) {
+                case ConstMob.LINH_DOC_NHAN -> ConstItem.MANH_LINH_DOC_NHAN;
+                case ConstMob.LINH_DOC_NHAN2 -> ConstItem.MANH_LINH_DOC_NHAN_838;
+                case ConstMob.SOI_XAM -> ConstItem.MANH_SOI_XAM;
+                default -> -1;
+            };
+            if (cardId != -1) {
+                DropItem.to(player, this.zone, this.location.x, this.location.y)
+                        .item(cardId)
+                        .rate(20)
+                        .execute();
             }
         }
         if (MapService.gI().isMapRiengTu(mapid)) {

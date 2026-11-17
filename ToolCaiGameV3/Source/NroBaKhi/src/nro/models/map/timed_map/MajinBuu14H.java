@@ -13,7 +13,7 @@ import nro.models.utils.TimeUtil;
 import nro.models.map.timed_map.TimedMapManager;
 
 @Data
-public final class MajinBuu14H implements Runnable {
+public final class MajinBuu14H {
 
     public static final int AVAILABLE = 7;
     public int id;
@@ -22,24 +22,6 @@ public final class MajinBuu14H implements Runnable {
     public MajinBuu14H(int id) {
         this.id = id;
         this.zones = new ArrayList<>();
-        this.init();
-    }
-
-    public void init() {
-        Thread.ofVirtual().name("MajinBuu 14H - Id : " + id).start(this);
-    }
-
-    @Override
-    public void run() {
-        while (!Maintenance.isRunning) {
-            try {
-                long startTime = System.currentTimeMillis();
-                update();
-                Functions.sleep(Math.max(150 - (System.currentTimeMillis() - startTime), 10));
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
     }
 
     public void update() {

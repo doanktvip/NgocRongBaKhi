@@ -1,93 +1,49 @@
 package nro.models.boss.doanh_trai;
 
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 import nro.models.boss.Boss;
-import nro.models.boss.BossData;
 import nro.models.boss.BossID;
+import nro.models.boss.BossesData;
 import nro.models.consts.BossStatus;
-import nro.models.consts.ConstPlayer;
 import nro.models.boss.Boss_Manager.RedRibbonHQManager;
 import static nro.models.consts.BossType.PHOBANDT;
 import nro.models.clan.Clan;
-import nro.models.map.ItemMap;
+import nro.models.consts.ConstItem;
 import nro.models.map.Zone;
 import nro.models.player.Player;
-import nro.models.skill.Skill;
-import nro.models.services.EffectSkillService;
+import nro.models.services.PlayerService;
 import nro.models.services.Service;
 import nro.models.map.service.ChangeMapService;
 import nro.models.utils.Util;
+import nro.models.network.Message;
 
 public class NinjaAoTim extends Boss {
 
     private boolean calledNinja;
+    private final List<NinjaClone> clones = new CopyOnWriteArrayList<>();
 
     public NinjaAoTim(Zone zone, Clan clan, int dame, int hp) throws Exception {
-        super(PHOBANDT, BossID.NINJA_AO_TIM, new BossData(
-                "Ninja Áo Tím", //name
-                ConstPlayer.TRAI_DAT, //gender
-                new short[]{123, 124, 125, -1, -1, -1}, //outfit {head, body, leg, bag, aura, eff}
-                ((dame)), //dame
-                new int[]{((hp))}, //hp
-                new int[]{54}, //map join
-                new int[][]{
-                    {Skill.DEMON, 3, 1}, {Skill.DEMON, 6, 2}, {Skill.DRAGON, 7, 3}, {Skill.DRAGON, 1, 4}, {Skill.GALICK, 5, 5},
-                    {Skill.KAMEJOKO, 7, 6}, {Skill.KAMEJOKO, 6, 7}, {Skill.KAMEJOKO, 5, 8}, {Skill.KAMEJOKO, 4, 9}, {Skill.KAMEJOKO, 3, 10}, {Skill.KAMEJOKO, 2, 11}, {Skill.KAMEJOKO, 1, 12},
-                    {Skill.ANTOMIC, 1, 13}, {Skill.ANTOMIC, 2, 14}, {Skill.ANTOMIC, 3, 15}, {Skill.ANTOMIC, 4, 16}, {Skill.ANTOMIC, 5, 17}, {Skill.ANTOMIC, 6, 19}, {Skill.ANTOMIC, 7, 20},
-                    {Skill.MASENKO, 1, 21}, {Skill.MASENKO, 5, 22}, {Skill.MASENKO, 6, 23},
-                    {Skill.KAMEJOKO, 7, 1000},},
-                new String[]{}, //text chat 1
-                new String[]{"|-1|Ta sẽ xé xác ngươi ra thành trăm mảnh",
-                    "|-1|Ha ha ha"}, //text chat 2
-                new String[]{}, //text chat 3
-                60
-        ));
-
+        super(PHOBANDT, BossID.NINJA_AO_TIM, BossesData.NINJA_AO_TIM(dame, hp));
         this.zone = zone;
         this.clan = clan;
     }
 
     @Override
     public void reward(Player plKill) {
-        int diem = 5;
-        plKill.event.addEventPoint(diem);
-        Service.gI().sendThongBao(plKill, "+5 Point");
-
-        // Xác suất rơi item 1560 (50%)
-        if (Util.isTrue(50, 100)) {
-            ItemMap it = new ItemMap(
-                    this.zone,
-                    17,
-                    1,
-                    this.location.x,
-                    this.zone.map.yPhysicInTop(this.location.x, this.location.y - 24),
-                    plKill.id
-            );
-            Service.gI().dropItemMap(this.zone, it);
+        if (plKill == null) {
+            return;
         }
-
-        // Xác suất rơi item 611 (30%)
-        if (Util.isTrue(30, 100)) {
-            ItemMap it = new ItemMap(
-                    this.zone,
-                    611,
-                    Util.nextInt(1, 2),
-                    this.location.x,
-                    this.zone.map.yPhysicInTop(this.location.x, this.location.y - 24),
-                    plKill.id
-            );
-            Service.gI().dropItemMap(this.zone, it);
-        }
-
-        // 100% rơi item 1824
-        ItemMap it = new ItemMap(
-                this.zone,
-                1824,
-                1,
-                this.location.x,
-                this.zone.map.yPhysicInTop(this.location.x, this.location.y - 24),
-                plKill.id
-        );
-        Service.gI().dropItemMap(this.zone, it);
+        super.reward(plKill);
+        this.drop(plKill)
+                .random(
+                        ConstItem.NGOC_RONG_4_SAO,
+                        ConstItem.NGOC_RONG_5_SAO,
+                        ConstItem.NGOC_RONG_6_SAO,
+                        ConstItem.NGOC_RONG_7_SAO
+                )
+                .item(ConstItem.MANH_NINJA_AO_TIM, 1)
+                .execute();
     }
 
     @Override
@@ -102,50 +58,146 @@ public class NinjaAoTim extends Boss {
     }
 
     @Override
-    public void active() {
-        super.active();
-    }
-
-    @Override
     public synchronized int injured(Player plAtt, long damage, boolean piercing, boolean isMobAttack) {
         if (!this.isDie()) {
-            if (!piercing && Util.isTrue(30, 100)) {
-                this.chat("Xí hụt");
-                return 0;
-            }
-            damage = this.nPoint.subDameInjureWithDeff(damage / 2);
-            if (!piercing && effectSkill.isShielding) {
-                if (damage > nPoint.hpMax) {
-                    EffectSkillService.gI().breakShield(this);
+            int halfHp = this.nPoint.hpMax / 2;
+            if (!this.calledNinja) {
+                if (this.nPoint.hp <= halfHp || this.nPoint.hp - damage <= halfHp) {
+                    callNinjaClones();
+                    return 0;
                 }
-                damage = damage / 2;
             }
-            if (this.nPoint.hp <= this.nPoint.hpMax / 2 && !this.calledNinja) {
-                if (Util.isTrue(4, 5)) {
-                    try {
-                        clan.doanhTrai.bosses.add(new NinjaClone(this.zone, this, this.nPoint.dame / 10, this.nPoint.hpMax / 10, BossID.NINJA_AO_TIM1));
-                        clan.doanhTrai.bosses.add(new NinjaClone(this.zone, this, this.nPoint.dame / 10, this.nPoint.hpMax / 10, BossID.NINJA_AO_TIM2));
-                        clan.doanhTrai.bosses.add(new NinjaClone(this.zone, this, this.nPoint.dame / 10, this.nPoint.hpMax / 10, BossID.NINJA_AO_TIM3));
-                        clan.doanhTrai.bosses.add(new NinjaClone(this.zone, this, this.nPoint.dame / 10, this.nPoint.hpMax / 10, BossID.NINJA_AO_TIM4));
-                        if (Util.isTrue(1, 2)) {
-                            clan.doanhTrai.bosses.add(new NinjaClone(this.zone, this, this.nPoint.dame / 10, this.nPoint.hpMax / 10, BossID.NINJA_AO_TIM5));
-                            clan.doanhTrai.bosses.add(new NinjaClone(this.zone, this, this.nPoint.dame / 10, this.nPoint.hpMax / 10, BossID.NINJA_AO_TIM6));
-                        }
-                    } catch (Exception ex) {
-                    }
-                }
-                this.calledNinja = true;
-                return 0;
+
+            NinjaClone aliveClone = getRandomAliveClone();
+            if (aliveClone != null && Util.isTrue(50, 100)) {
+                this.chat("Đó chỉ là tàn ảnh thôi!");
+                swapPosition(aliveClone);
+                return aliveClone.injured(plAtt, damage, piercing, isMobAttack);
             }
-            this.nPoint.subHP(damage);
-            if (isDie()) {
-                this.setDie(plAtt);
-                die(plAtt);
-            }
-            return (int) damage;
-        } else {
-            return 0;
+
+            return super.injured(plAtt, damage, piercing, isMobAttack);
         }
+        return 0;
+    }
+
+    private void sendExitMap(Player player) {
+        if (player == null || player.zone == null) {
+            return;
+        }
+        Message msg = null;
+        try {
+            msg = new Message(-6);
+            msg.writer().writeInt((int) player.id);
+            Service.gI().sendMessAnotherNotMeInMap(player, msg);
+        } catch (Exception e) {
+            nro.models.utils.Logger.logException(NinjaAoTim.class, e);
+        } finally {
+            if (msg != null) {
+                msg.cleanup();
+            }
+        }
+    }
+
+    private void callNinjaClones() {
+        this.calledNinja = true;
+        this.nPoint.hp = this.nPoint.hpMax;
+        PlayerService.gI().sendInfoHp(this);
+        this.chat("Phân thân chi thuật!");
+
+        if (this.zone == null) {
+            return;
+        }
+
+        int origX = this.location.x;
+        int origY = this.location.y;
+
+        sendExitMap(this);
+
+        int count = Util.nextInt(4, 6);
+        int hpClone = this.nPoint.hpMax;
+        int dameClone = this.nPoint.dame;
+        int[] cloneIds = {
+            BossID.NINJA_AO_TIM1,
+            BossID.NINJA_AO_TIM2,
+            BossID.NINJA_AO_TIM3,
+            BossID.NINJA_AO_TIM4,
+            BossID.NINJA_AO_TIM5,
+            BossID.NINJA_AO_TIM6
+        };
+
+        if (this.clan != null && this.clan.doanhTrai != null) {
+            for (int i = 0; i < count; i++) {
+                try {
+                    NinjaClone clone = new NinjaClone(this.zone, this, dameClone, hpClone, cloneIds[i]);
+                    if (i == 0) {
+                        ChangeMapService.gI().changeMap(clone, this.zone, origX, origY);
+                        clone.changeToTypePK();
+                        clone.changeStatus(BossStatus.ACTIVE);
+                    } else {
+                        clone.joinMap();
+                    }
+                    this.clones.add(clone);
+                    clan.doanhTrai.bosses.add(clone);
+                } catch (Exception ex) {
+                    nro.models.utils.Logger.logException(NinjaAoTim.class, ex);
+                }
+            }
+        }
+
+        int newX = origX + Util.getOne(-1, 1) * Util.nextInt(120, 220);
+        if (this.zone.map != null) {
+            newX = Math.max(100, Math.min(this.zone.map.mapWidth - 100, newX));
+            this.location.y = this.zone.map.yPhysicInTop(newX, origY);
+        }
+        this.location.x = newX;
+        this.zone.load_Me_To_Another(this);
+    }
+
+    private NinjaClone getRandomAliveClone() {
+        if (this.clones.isEmpty()) {
+            return null;
+        }
+        int countAlive = 0;
+        for (int i = 0; i < this.clones.size(); i++) {
+            NinjaClone c = this.clones.get(i);
+            if (c != null && !c.isDie() && c.zone != null && c.zone.equals(this.zone) && c.location.x > 0) {
+                countAlive++;
+            }
+        }
+        if (countAlive == 0) {
+            return null;
+        }
+        int target = Util.nextInt(0, countAlive - 1);
+        int cur = 0;
+        for (int i = 0; i < this.clones.size(); i++) {
+            NinjaClone c = this.clones.get(i);
+            if (c != null && !c.isDie() && c.zone != null && c.zone.equals(this.zone) && c.location.x > 0) {
+                if (cur == target) {
+                    return c;
+                }
+                cur++;
+            }
+        }
+        return null;
+    }
+
+    private void swapPosition(NinjaClone clone) {
+        if (clone == null || this.zone == null || clone.zone == null) {
+            return;
+        }
+        if (this.location.x <= 0 || clone.location.x <= 0) {
+            return;
+        }
+        int realX = this.location.x;
+        int realY = this.location.y;
+        int cloneX = clone.location.x;
+        int cloneY = clone.location.y;
+
+        sendExitMap(this);
+        Service.gI().setPos(clone, realX, realY);
+        this.location.x = cloneX;
+        this.location.y = cloneY;
+        this.zone.load_Me_To_Another(this);
     }
 
     @Override
@@ -153,11 +205,23 @@ public class NinjaAoTim extends Boss {
         if (plKill != null) {
             reward(plKill);
         }
+        for (NinjaClone clone : this.clones) {
+            if (clone != null && !clone.isDie()) {
+                clone.leaveMap();
+            }
+        }
+        this.clones.clear();
         this.changeStatus(BossStatus.DIE);
     }
 
     @Override
     public void leaveMap() {
+        for (NinjaClone clone : this.clones) {
+            if (clone != null && !clone.isDie()) {
+                clone.leaveMap();
+            }
+        }
+        this.clones.clear();
         ChangeMapService.gI().exitMap(this);
         this.lastZone = null;
         this.lastTimeRest = System.currentTimeMillis();

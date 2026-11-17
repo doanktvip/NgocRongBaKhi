@@ -31,10 +31,13 @@ public class ItemTimeService {
 
     public void sendAllItemTime(Player player) {
         ItemTimeService.gI().sendTextBanDoKhoBau(player);
-        ItemTimeService.gI().sendTextDoanhTrai(player);
+        if (player.clan != null && player.clan.doanhTrai != null && player.clan.doanhTrai.isTimePicking) {
+            ItemTimeService.gI().sendTextTimePickDoanhTrai(player);
+        } else {
+            ItemTimeService.gI().sendTextDoanhTrai(player);
+        }
         ItemTimeService.gI().sendTextConDuongRanDoc(player);
         ItemTimeService.gI().sendTextKhiGasHuyDiet(player);
-        ItemTimeService.gI().sendTextTimePickDoanhTrai(player);
         if (player.fusion.typeFusion == ConstPlayer.LUONG_LONG_NHAT_THE) {
             sendItemTime(player, player.gender == ConstPlayer.NAMEC ? 3901 : 3790,
                     (int) ((Fusion.TIME_FUSION - (System.currentTimeMillis() - player.fusion.lastTimeFusion)) / 1000));
@@ -181,6 +184,9 @@ public class ItemTimeService {
     public void sendTextDoanhTrai(Player player) {
         if (player.clan != null && !player.clan.haveGoneDoanhTrai
                 && player.clan.lastTimeOpenDoanhTrai != 0) {
+            if (player.clan.doanhTrai != null && player.clan.doanhTrai.isTimePicking) {
+                return;
+            }
             int secondPassed = (int) ((System.currentTimeMillis() - player.clan.lastTimeOpenDoanhTrai) / 1000);
             int secondsLeft = (RedRibbonHQ.TIME_DOANH_TRAI / 1000) - secondPassed;
             if (secondsLeft < 0 || secondsLeft > 1800) {
@@ -197,7 +203,7 @@ public class ItemTimeService {
             if (secondsLeft < 0 || secondsLeft > 1800) {
                 return;
             }
-            sendTextTime(player, DOANH_TRAI, "Trại độc nhãn:", secondsLeft);
+            sendTextTime(player, DOANH_TRAI, "Thu thập mảnh:", secondsLeft);
         }
     }
 

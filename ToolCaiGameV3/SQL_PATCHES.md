@@ -28,3 +28,16 @@
 * **Ngày thực hiện**: 2026-11-14
 * **Mục đích**: Đồng bộ cơ chế quản lý dữ liệu cho Server `NroBaKhi` và Web Admin `WebTeamobi`.
 * **Trạng thái**: Cơ sở dữ liệu gốc đang đồng bộ với bản chụp `nrobakhi.sql` (43 bảng).
+
+### Patch 002: Thêm Cột Hồi Chiêu Doanh Trại Độc Nhãn Cho Bang Hội
+* **Ngày thực hiện**: 2026-11-16
+* **Tác giả**: AI Agent
+* **Mục đích**: Lưu mốc thời gian mở Doanh Trại gần nhất của Bang Hội vào Database MySQL để duy trì đếm ngược 24h xuyên suốt qua các lần khởi động / bảo trì Server.
+* **Lệnh thực thi**:
+```sql
+ALTER TABLE `clan` ADD COLUMN `last_time_open_doanhtrai` BIGINT(20) NOT NULL DEFAULT 0;
+```
+* **Lệnh hoàn tác (Rollback nếu có)**:
+```sql
+ALTER TABLE `clan` DROP COLUMN `last_time_open_doanhtrai`;
+```

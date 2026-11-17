@@ -4,6 +4,7 @@ import nro.models.boss.Boss;
 import nro.models.boss.BossID;
 import nro.models.boss.BossesData;
 import nro.models.consts.BossStatus;
+import nro.models.consts.ConstItem;
 import nro.models.player.DropItem.DropBuilder;
 import nro.models.player.Player;
 import nro.models.utils.Util;
@@ -33,9 +34,9 @@ public class SO1_NM extends Boss {
         DropBuilder drop = this.drop(plKill);
         int piles = Util.nextInt(5, 10);
         for (int i = 0; i < piles; i++) {
-            drop.item(861, Util.nextInt(1, 3));
+            drop.item(ConstItem.HONG_NGOC, Util.nextInt(1, 3));
         }
-        drop.random(18, 19, 20).execute();
+        drop.random(ConstItem.NGOC_RONG_5_SAO, ConstItem.NGOC_RONG_6_SAO, ConstItem.NGOC_RONG_7_SAO).execute();
 
         // Cộng 5 điểm sự kiện và thông báo
         this.rewardEventPoint(plKill, 5);

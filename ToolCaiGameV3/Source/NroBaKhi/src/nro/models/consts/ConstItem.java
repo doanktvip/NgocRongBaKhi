@@ -578,6 +578,17 @@ public class ConstItem {
     public static final int GIAY_THAN_NAMEC = 565;
     public static final int GANG_THAN_XAYDA = 566;
     public static final int GIAY_THAN_XAYDA = 567;
+
+    // Cấp độ trang bị Thần Linh trong RewardService & DropItem
+    public static final int CAP_DO_THAN_LINH = 13;
+
+    // Trọn bộ 13 món trang bị Thần Linh
+    public static final int[] DO_THAN_LINH = {
+        AO_THAN_LINH, QUAN_THAN_LINH, GANG_THAN_LINH, GIAY_THAN_LINH,
+        AO_THAN_NAMEC, QUAN_THAN_NAMEC, GANG_THAN_NAMEC, GIAY_THAN_NAMEC,
+        AO_THAN_XAYDA, QUAN_THAN_XAYDA, GANG_THAN_XAYDA, GIAY_THAN_XAYDA,
+        NHAN_THAN_LINH
+    };
     public static final int QUA_TRUNG = 568;
     public static final int DUA_HAU = 569;
     public static final int RUONG_GO = 570;

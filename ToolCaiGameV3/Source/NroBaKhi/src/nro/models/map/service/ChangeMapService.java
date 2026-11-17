@@ -23,6 +23,7 @@ import nro.models.utils.Logger;
 import nro.models.utils.TimeUtil;
 
 import java.util.List;
+import nro.models.map.phoban.BanDoKhoBau;
 import nro.models.map.timed_map.BlackBallWarService;
 import nro.models.server.Manager;
 import nro.models.services.InventoryService;
@@ -842,15 +843,22 @@ public class ChangeMapService {
 
     public void goToDBKB(Player player) {
         if (!player.idMark.isGoToBDKB()) {
-            if (Util.isAfterMidnight(player.lastTimeJoinBDKB)) {
-                player.timesPerDayBDKB = 1;
-            } else if (player.lastTimeJoinBDKB != player.clan.lastTimeOpenBanDoKhoBau) {
-                player.lastTimeJoinBDKB = player.clan.lastTimeOpenBanDoKhoBau;
-                player.timesPerDayBDKB++;
-                if (player.timesPerDayBDKB > 3) {
-                    Service.gI().sendThongBao(player, "Bạn đã vào hang kho báu 3 lần trong hôm nay, hẹn gặp lại ngày mai");
+            if (!player.isAdmin() && player.nPoint.power < BanDoKhoBau.POWER_CAN_GO_TO_DBKB) {
+                Service.gI().sendThongBao(player, "Yêu cầu sức mạnh lớn hơn " + Util.numberToMoney(BanDoKhoBau.POWER_CAN_GO_TO_DBKB));
+                return;
+            }
+            if (Util.canDoWithTime(player.lastTimeJoinBDKB, BanDoKhoBau.TIME_RESET_BDKB)) {
+                player.timesPerDayBDKB = 0;
+            }
+            if (player.clan != null && player.lastTimeJoinBDKB != player.clan.lastTimeOpenBanDoKhoBau) {
+                if (player.timesPerDayBDKB >= BanDoKhoBau.MAX_TIMES_PER_DAY) {
+                    Service.gI().sendThongBao(player, "Bạn đã vào hang kho báu " + BanDoKhoBau.MAX_TIMES_PER_DAY + " lần trong 24 giờ qua, hẹn gặp lại sau");
                     return;
                 }
+                if (player.timesPerDayBDKB == 0) {
+                    player.lastTimeJoinBDKB = player.clan.lastTimeOpenBanDoKhoBau;
+                }
+                player.timesPerDayBDKB++;
             }
             player.idMark.setLastTimeGoToBDKB(System.currentTimeMillis());
             player.idMark.setGoToBDKB(true);
@@ -885,10 +893,10 @@ public class ChangeMapService {
     }
 
     public Zone checkMapCanJoin(Player player, Zone zoneJoin) {
-        if (zoneJoin == null) {
+        if (zoneJoin == null || zoneJoin.map == null) {
             return null;
         }
-        if (zoneJoin.map.mapId == -1) {
+        if (zoneJoin.map.mapId == -1 || zoneJoin.map.tileMap == null || zoneJoin.map.tileMap.length == 0) {
             return null;
         }
         if (player.isPet || player.isBoss || player.getSession() != null && player.isAdmin()) {

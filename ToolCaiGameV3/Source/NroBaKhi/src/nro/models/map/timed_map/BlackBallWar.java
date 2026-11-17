@@ -22,7 +22,7 @@ import nro.models.server.Maintenance;
 import nro.models.map.timed_map.TimedMapManager;
 
 @Data
-public class BlackBallWar implements Runnable {
+public class BlackBallWar {
 
     public static final int TIME_CAN_PICK_BLACK_BALL_AFTER_DROP = 5000;
     public static final byte X3 = 3;
@@ -47,24 +47,6 @@ public class BlackBallWar implements Runnable {
 
     public BlackBallWar(Zone zone) {
         this.zone = zone;
-        start();
-    }
-
-    private void start() {
-        Thread.ofVirtual().name("Zone " + zone.zoneId).start(this);
-    }
-
-    @Override
-    public void run() {
-        while (!Maintenance.isRunning) {
-            try {
-                long startTime = System.currentTimeMillis();
-                update();
-                Functions.sleep(Math.max(150 - (System.currentTimeMillis() - startTime), 10));
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
     }
 
     public synchronized void update() {

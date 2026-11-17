@@ -48,6 +48,387 @@
 
 ## 4. Lịch Sử Thực Thi Gần Nhất (Completed Tasks Log)
 
+* **[Cập Nhật Giới Hạn Cấp 100, Reset Chu Kỳ 24h & Khóa Bang Hội BDKB]**:
+  * **Reset đúng 24h từ bản đồ đầu tiên**:
+    - Thay thế cơ chế reset nửa đêm (`isAfterMidnight`) bằng cơ chế đếm ngược 24 tiếng (`TIME_RESET_BDKB = 86400000L`).
+    - Lần đầu tiên tham gia/mở (`timesPerDay == 0`) sẽ chốt mốc thời gian bắt đầu chu kỳ (`lastTimeJoinBDKB` / `lastTimeOpenBanDoKhoBau`).
+    - Các lần 2, 3 đi trong vòng 24h chỉ tăng biến đếm mà giữ nguyên mốc thời gian ban đầu để đảm bảo reset chính xác sau 24h tính từ lần đầu tiên.
+  * **Điều chỉnh cấp độ từ 1–110 thành 1–100**:
+    - `BanDoKhoBau.MAX_LEVEL = 100`.
+    - Scale Hardcore: `scale = level / 100.0` (Cấp 100 đạt trần 2 tỷ HP, 20 triệu Dame cho Boss và Big Mob).
+    - Cập nhật Form nhập cấp độ và giới hạn kiểm tra trong [Input.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/services_func/Input.java) và [TreasureUnderSeaService.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/map/phoban/TreasureUnderSeaService.java).
+  * **Khóa Bang Hội & Chống Hardcode**:
+    - Thêm `BanDoKhoBau.MAX_TIMES_PER_DAY = 3;`.
+    - Mở rộng cột `thanhTichBDKB` trong bảng `clan` lưu đủ `[levelDone, thoiGian, timesPerDayBDKB, lastTimeOpenBanDoKhoBau]` và cập nhật tức thì xuống MySQL qua `clan.updateBDKB()`.
+  * **Kiểm tra biên dịch**: `javac` đã biên dịch thành công 100% tất cả các class vào `build/classes`.
+
+* **[Hoàn Thiện Ràng Buộc & Khắc Phục Lỗi Giới Hạn 3 Lần/Ngày BDKB]**:
+  * **Giải quyết thắc mắc & lỗi Bang chủ đi 3 lần**:
+    - Trước đây, nhánh mở hang mới trong `QuyLaoKame.java` chưa kiểm tra `timesPerDayBDKB >= 3`, khiến Bang chủ đã đi hết lượt vẫn mở được Form chọn cấp độ (1-110).
+    - Đã bổ sung kiểm tra chặn ngay tại NPC Quy Lão Kame trước khi mở form nhập cấp độ: Nếu `player.timesPerDayBDKB >= 3` (chưa qua nửa đêm), NPC sẽ báo ngay *"Con đã vào hang kho báu 3 lần trong hôm nay rồi, hẹn gặp lại ngày mai!"*.
+  * **Khắc phục Bug cộng đúp lượt đi (`timesPerDayBDKB++`)**:
+    - Khi Bang chủ mở hang, `TreasureUnderSeaService` đã tăng lượt, nhưng thời gian `player.lastTimeJoinBDKB` và `clan.lastTimeOpenBanDoKhoBau` bị lệch vài mili giây dẫn đến việc `ChangeMapService.goToDBKB()` tiếp tục tăng thêm lượt thứ 2.
+    - Đã đồng bộ chuẩn xác `lastTimeOpen` giữa `TreasureUnderSeaService`, `BanDoKhoBau` và `ChangeMapService`, loại bỏ triệt để hiện tượng bị tính 2 lượt sau 1 lần mở.
+  * **Thắt chặt an toàn đa tầng**:
+    - Thêm kiểm tra sức mạnh $\ge 2$ tỷ (`POWER_CAN_GO_TO_DBKB`) trực tiếp tại cả `TreasureUnderSeaService.openBanDoKhoBau` và `ChangeMapService.goToDBKB` để chống hack packet trực tiếp.
+  * **Các file cập nhật**:
+    - [QuyLaoKame.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/npc_list/QuyLaoKame.java)
+    - [TreasureUnderSeaService.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/map/phoban/TreasureUnderSeaService.java)
+    - [BanDoKhoBau.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/map/phoban/BanDoKhoBau.java)
+    - [ChangeMapService.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/map/service/ChangeMapService.java)
+  * **Kiểm tra biên dịch**: Đã chạy `compile_check.bat`, trả về `[COMPILE_SUCCESS]`, xuất file `NroBaKhi.jar` thành công 100%.
+
+* **[Tối Giản Hóa Xử Lý Menu Bản Đồ Kho Báu Trong QuyLaoKame.java]**:
+  * Đã gộp 2 hàm trùng lặp `handleMenuOpenDBKB` và `handleMenuOpenedDBKB` thành 1 hàm duy nhất `handleMenuTreasureMap(Player player, int select)`.
+  * `confirmMenu`: Gộp 2 nhánh `case ConstNpc.MENU_OPENED_DBKB, ConstNpc.MENU_OPEN_DBKB:` cùng trỏ về `handleMenuTreasureMap`.
+  * Tái cấu trúc chuẩn DRY, sửa lỗi hiển thị Thành tích bang (`showMyTopClanBDKB`) và tập trung logic kiểm tra Bang chủ / Sức mạnh / Trạng thái hang vào 1 nơi duy nhất.
+  * **Kiểm tra biên dịch**: Đã chạy `compile_check.bat`, trả về `[COMPILE_SUCCESS]`, xuất file `NroBaKhi.jar` thành công 100%.
+
+* **[Thiết Lập Chế Độ Bản Đồ Kho Báu Hardcore & Thắt Chặt Điều Kiện Mở/Tham Gia]**:
+  * **Yêu cầu & Điều kiện mở/tham gia**:
+    - **Chỉ cho Bang Chủ** (`player.clan.isLeader(player)`) mới được mở Bản Đồ Kho Báu (BDKB).
+    - **Người mở (Bang Chủ)**: Bắt buộc sở hữu Bản Đồ Kho Báu (Item ID `611`) trong hành trang và bị trừ 1 vé khi mở hang thành công.
+    - **Thành viên tham gia**: Khi bấm "Đồng ý" vào hang cùng bang hội tại NPC Quy Lão Kame (`handleMenuOpenedDBKB`), hệ thống kiểm tra số lần vào trong ngày (`timesPerDayBDKB < 3`) và dịch chuyển vào hang (`goToDBKB`) hoàn toàn miễn phí, không bắt buộc sở hữu hay trừ thêm Bản Đồ Kho Báu (chỉ Bang Chủ khi mở hang mới tốn 1 Bản đồ kho báu).
+  * **Chỉ số quái & Boss Bản Đồ Kho Báu Hardcore theo Cấp Độ 1-110 (`scale = level / 110.0`)**:
+    - **Boss (Trung Úy Xanh Lơ - Map 138) & Big Mob (Vua Bạch Tuộc Mob 71 - Map 136, Rôbốt bảo vệ Mob 72 - Map 138)**:
+      * HP: Kịch trần `2.000.000.000` (2 tỷ HP) tại Cấp 110.
+      * Dame: Max `20.000.000` (20 triệu Dame) tại Cấp 110.
+    - **Siêu Mob** (Vị trí đặc biệt trong Map 135, 136, 137):
+      * HP: Max `1.000.000.000` (1 tỷ HP) tại Cấp 110.
+      * Dame: Max `10.000.000` (10 triệu Dame) tại Cấp 110.
+    - **Mob Thường** (Toàn bộ quái còn lại trong 4 map):
+      * HP: Max `500.000.000` (500 triệu HP) tại Cấp 110.
+      * Dame: Max `5.000.000` (5 triệu Dame) tại Cấp 110.
+    - **Bẫy (TrapMap)**: Sát thương tăng tiến theo cấp độ, tối đa `10.000.000` Dame tại Cấp 110.
+  * **Các file cập nhật**:
+    - [QuyLaoKame.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/npc_list/QuyLaoKame.java): Thắt chặt kiểm tra Bang chủ khi mở, kiểm tra & trừ Item 611 của thành viên tham gia.
+    - [TreasureUnderSeaService.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/map/phoban/TreasureUnderSeaService.java): Chặn tài khoản không phải Bang chủ gọi `openBanDoKhoBau`.
+    - [BanDoKhoBau.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/map/phoban/BanDoKhoBau.java): Cập nhật hàm `init()` thiết lập chỉ số HP, Dame chuẩn xác theo tỉ lệ `level / 110.0` đạt đỉnh Hardcore ở cấp 110 cho Boss, Big Mob, Siêu Mob, Mob thường và TrapMap.
+  * **Kiểm tra biên dịch**: Đã chạy `compile_check.bat`, trả về `[COMPILE_SUCCESS]`, xuất file `NroBaKhi.jar` thành công 100%.
+
+* **[Kiểm Tra & Tối Ưu Toàn Diện Hiệu Năng, An Toàn & Chuẩn Hóa Logic Toàn Bộ Boss Doanh Trại]**:
+  * **Phạm vi kiểm tra**: 6 Boss trong package `nro.models.boss.doanh_trai`:
+    - `TrungUyTrang.java`:
+      * Giữ nguyên `super.reward(plKill);` nguyên bản của Trung Úy Trắng (phục vụ nhiệm vụ/thành tựu đặc thù phó bản).
+      * Phòng ngừa lỗi NPE trong `injured`: bổ sung kiểm tra an toàn `this.zone != null` trước khi truy cập `isbulon1Alive` / `isbulon2Alive`.
+      * Khắc phục tình trạng đứng im đơ mục tiêu (Target Freeze): khi người chơi được nhắm nằm ngoài phạm vi giao chiến (`location.x < 755 || location.x > 1060`), tự động reset `this.playerTarger = null` để Boss chuyển mục tiêu ngay sang người chơi đang đứng trong phòng đánh Boss.
+      * Xóa bỏ khối `catch (Exception ex) {}` rỗng nuốt lỗi (vi phạm Rule 9), thay bằng ghi nhận log `Logger.logException`. Dọn sạch toàn bộ import dư thừa.
+    - `TrungUyThep.java`, `TrungUyXanhLo.java`, `RobotVeSi.java`, `NinjaAoTim.java`, `NinjaClone.java`:
+      * Giữ nguyên cơ chế gốc **KHÔNG gọi `super.reward(plKill)`** như thiết kế chuẩn NRO (chỉ có Trung Úy Trắng mới có `super.reward`).
+      * Khắc phục đứng im đơ mục tiêu khi người chơi ngoài vùng giao chiến bằng cách reset `this.playerTarger = null`.
+      * Thay khối catch rỗng bằng `Logger.logException`. Dọn dẹp import.
+      * Tách biệt tọa độ xuất hiện cho 4 Rô bốt Vệ Sĩ theo ID (`220 + id * 50`).
+      * Chuyển `clones` của Ninja Áo Tím sang `CopyOnWriteArrayList` chống xung đột đa luồng.
+      * Dọn dẹp clone khỏi RAM ngay khi chết trong `leaveMap()`.
+  * **Kiểm tra biên dịch**: Đã chạy `compile_check.bat`, đạt `[COMPILE_SUCCESS]`, đóng gói thành công `NroBaKhi.jar`.
+
+* **[Cơ Chế Bẻ Lái Target Focus & Thuật Thế Thân Cho Ninja Áo Tím (Doanh Trại)]**:
+  * **Giải đáp câu hỏi cơ chế**: Quá trình `respawn()` là phương thức nạp lại chỉ số trong RAM (0ms, không có thời gian chờ). Cơ chế bẻ lái mục tiêu của Client NRO 2D phụ thuộc vào gói tin `Message -6` (xóa thực thể khỏi map): khi client nhận `Message -6` của một nhân vật, client lập tức reset con trỏ mục tiêu `charFocus = null`.
+  * **Cập nhật trong [NinjaAoTim.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/boss/doanh_trai/NinjaAoTim.java)**:
+    - Khi máu $\le 50\%$ HP và dùng "Phân thân chi thuật":
+      * Boss thật hồi full 100% HP.
+      * Boss thật phát gói tin `Message -6` (`sendExitMap(this)`) khiến toàn bộ người chơi trong map bị hủy target (`charFocus = null`).
+      * Clone 0 xuất hiện ngay đúng tọa độ cũ của Boss thật để người chơi khi đánh sẽ tự động bắt mục tiêu (auto-target) vào Clone.
+      * Các Clone 1..N xuất hiện rải rác xung quanh.
+      * Boss thật dịch chuyển sang vị trí ngẫu nhiên cách đó 120-220px và hiện hình trở lại (`load_Me_To_Another`).
+    - Trong khi giao tranh (Thuật Thế Thân):
+      * Mỗi đòn đánh của người chơi vào Boss thật có 50% tỉ lệ kích hoạt "Đó chỉ là tàn ảnh thôi!".
+      * Boss thật gửi `Message -6` hủy focus, tráo đổi tọa độ với 1 Ninja Clone còn sống.
+      * Sát thương từ đòn đánh của người chơi được chuyển hướng sang con Clone đó (`aliveClone.injured(...)`).
+      * Khi người chơi tiếp tục đánh, họ sẽ đánh vào con Clone đang thế thân ngay trước mặt.
+  * **Kiểm tra biên dịch**: Đã chạy `compile_check.bat`, đạt `[COMPILE_SUCCESS]`, xuất file `NroBaKhi.jar` thành công.
+
+* **[Sửa Lỗi Phân Thân Ninja Áo Tím Chết Ngay Khi Sinh Ra & Chuẩn Hóa Hồi Full HP Cho Boss Thật / HP Dame Cho Clone]**:
+  * **Nguyên nhân gốc rễ**: Khi Ninja Áo Tím gọi phân thân (`new NinjaClone(...)`), code cũ gọi trực tiếp `clone.joinMap()` mà bỏ qua chu trình `clone.respawn()`. Dẫn đến `clone.initBase()` không được gọi, `clone.nPoint.hpMax` và `clone.nPoint.hp` bằng 0 $\rightarrow$ `clone.isDie() == true` ngay từ lúc xuất hiện, biến thành hồn ma lơ lửng có vòng sáng trên đầu (như trong ảnh chụp).
+  * **Cập nhật trong [NinjaClone.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/boss/doanh_trai/NinjaClone.java)**:
+    - Trong constructor: Bổ sung gọi `this.respawn();` để nạp dữ liệu `initBase()` (gán HP, Dame, kỹ năng, tính toán `calPoint()` chính xác trước khi vào map).
+    - Trong `joinMap()`: Đặt tọa độ rơi an toàn trên mặt đất trong giới hạn map, chuyển thẳng sang trạng thái PK và `BossStatus.ACTIVE` để có thể giao tranh ngay.
+  * **Cập nhật trong [NinjaAoTim.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/boss/doanh_trai/NinjaAoTim.java)**:
+    - Khi máu $\le 50\%$ HP và kích hoạt "Phân thân chi thuật": Ninja Áo Tím thật được **hồi phục 100% full HP** (`this.nPoint.hp = this.nPoint.hpMax`) và đồng bộ lên thanh máu client (`sendInfoHp`).
+    - Các Ninja Clone phân thân được sinh ra với **HP và Dame giống hệt Boss thật** (`hpClone = this.nPoint.hpMax`, `dameClone = this.nPoint.dame`).
+    - Khi Ninja Áo Tím thật bị tiêu diệt (`die()` / `leaveMap()`), tự động dọn dẹp biến mất toàn bộ phân thân còn sống để không làm nghẽn tiến độ phó bản.
+  * **Kiểm tra biên dịch**: Đã chạy `compile_check.bat`, đạt `[COMPILE_SUCCESS]`, xuất file `NroBaKhi.jar` thành công.
+
+* **[Sửa Lỗi Quái/Boss Bị Tụt Còn 40 HP & 600 HP Khi Thành Viên Ra Vào Doanh Trại]**:
+  * **Nguyên nhân gốc rễ**: Tại [RedRibbonHQService.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/map/phoban/RedRibbonHQService.java#L73-L78), khi thành viên tiếp viện hoặc chết quay lại bấm "Tham gia", code cũ gọi `pl.clan.doanhTrai.updateHPDame();` trước khi chuyển người chơi vào map. Tại thời điểm đó trong các map Doanh Trại chỉ còn lại Acc phụ (Dame = 10, HP = 400), dẫn đến công thức tính lại chỉ số theo đúng 1 acc phụ: Quái tụt còn `10 * 4 = 40 HP`, Boss map 59 tụt còn `10 * 60 * 1 = 600 HP`.
+  * **Khắc phục**: Loại bỏ dòng gọi `updateHPDame()` khi tiếp viện trong `RedRibbonHQService.java`. Đúng chuẩn NRO, chỉ số Quái và Boss được chốt cố định suốt 30 phút theo đội hình ban đầu lúc mở, không bị giảm sút hay reset máu khi thành viên ra vào.
+  * **Kiểm tra biên dịch**: Đã chạy `compile_check.bat`, đạt `[COMPILE_SUCCESS]`, xuất file `NroBaKhi.jar` thành công.
+
+* **[Sửa Lỗi Hiển Thị Đè Đồng Hồ Doanh Trại & Tách Biệt Đếm Ngược 5 Phút Nhặt Mảnh]**:
+  * **Cập nhật trong [ItemTimeService.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/services/ItemTimeService.java)**:
+    - Trong `sendTextDoanhTrai(Player player)`: Thêm điều kiện `if (player.clan.doanhTrai != null && player.clan.doanhTrai.isTimePicking) return;` để không bị gửi đè đồng hồ 25-30 phút cũ khi Doanh Trại đã vào giai đoạn 5 phút nhặt mảnh.
+    - Trong `sendTextTimePickDoanhTrai(Player player)`: Đổi nhãn text từ `"Trại độc nhãn:"` sang `"Thu thập mảnh:"` để hiển thị rõ ràng giai đoạn 5 phút nhặt mảnh, tránh người chơi nhìn nhầm với thời gian Doanh Trại gốc.
+    - Trong `sendAllItemTime(Player player)`: Phân nhánh rõ ràng, nếu `isTimePicking == true` thì gửi `sendTextTimePickDoanhTrai`, ngược lại mới gửi `sendTextDoanhTrai`.
+  * **Kiểm tra biên dịch**: Đã chạy `compile_check.bat`, đạt `[COMPILE_SUCCESS]`, xuất file `NroBaKhi.jar` thành công.
+
+* **[Đổi Thưởng Kết Thúc Doanh Trại: Rải Ngẫu Nhiên 7 Mảnh Sưu Tầm Đơn Lẻ Rải Rác Khắp Map (Không Dồn Cọc, SL=1 Như Ngọc Rồng)]**:
+  * **Cập nhật trong [RedRibbonHQ.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/map/phoban/RedRibbonHQ.java#L233-L300)**:
+    - Loại bỏ hoàn toàn cơ chế rơi dồn theo cọc nhiều món. Mỗi món rơi ra đất là đúng **1 mảnh đơn lẻ** (`quantity = 1`) như 1 viên Ngọc Rồng.
+    - Hàm `dropSingleCardFragment(tempId)` chọn ngẫu nhiên một Map bất kỳ trong Doanh Trại (`zones`) và thả 1 mảnh xuống đất (`(x, y)`).
+    - Cấu hình chuẩn xác tổng số lượng rơi ngẫu nhiên trên toàn Doanh Trại:
+      * Mảnh Lính Độc Nhãn (`ConstItem.MANH_LINH_DOC_NHAN` - 837): Rơi ngẫu nhiên **2 – 5 mảnh**.
+      * Mảnh Lính Độc Nhãn 2 (`ConstItem.MANH_LINH_DOC_NHAN_838` - 838): Rơi ngẫu nhiên **2 – 5 mảnh**.
+      * Mảnh Sói Xám (`ConstItem.MANH_SOI_XAM` - 839): Rơi ngẫu nhiên **2 – 5 mảnh**.
+      * Mảnh Trung Úy Trắng (`ConstItem.MANH_TRUNG_UY_TRANG` - 840): Rơi ngẫu nhiên **1 – 3 mảnh**.
+      * Mảnh Trung Úy Xanh Lơ (`ConstItem.MANH_TRUNG_UY_XANH_LO` - 842): Rơi ngẫu nhiên **1 – 3 mảnh**.
+      * Mảnh Ninja Áo Tím (`ConstItem.MANH_NINJA_AO_TIM` - 841): Rơi ngẫu nhiên **1 – 3 mảnh**.
+      * Mảnh Độc Nhãn (`ConstItem.MANH_DOC_NHAN` - 859): Rơi đúng **1 mảnh**.
+      * Bỏ hoàn toàn Đội Trưởng Vàng theo yêu cầu người dùng.
+    - Giữ alias `randomNR()` để tương thích ngược.
+  * **Cập nhật trong [DocNhan.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/npc_list/DocNhan.java#L26-L36) & [LinhCanh.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/npc_list/LinhCanh.java#L48-L52)**:
+    - Gọi `player.clan.doanhTrai.randomCardFragments()`.
+    - Sửa câu thoại NPC Độc Nhãn và thông báo hệ thống sang nội dung tìm kiếm Mảnh Sưu Tầm trong 5 phút.
+    - Sửa câu thoại NPC Lính Canh ở cửa vào: "Bang hội của ngươi đã tiêu diệt trại độc nhãn và đang thu thập mảnh sưu tầm... Ngươi có muốn tham gia không?".
+  * **Kiểm tra biên dịch**: Đã chạy `compile_check.bat`, đạt `[COMPILE_SUCCESS]`, xuất file `NroBaKhi.jar` thành công.
+
+* **[Chuẩn Hóa Rơi Đồ Toàn Bộ Boss, DropItem & RewardService: Thay Thế Số Bằng ConstItem & Bổ Sung thanLinh()]**:
+  * **Cập nhật trong [RewardService.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/services/RewardService.java)**:
+    - Bảng `ITEMS_BY_LEVEL` mảng Cấp 13 Thần Linh đã nạp toàn bộ hằng số `ConstItem.AO_THAN_LINH` .. `NHAN_THAN_LINH`.
+    - Bổ sung helper `randItemDoThanLinh()` gọi trực tiếp `randItemDoCap(ConstItem.CAP_DO_THAN_LINH)`.
+  * **Cập nhật trong [DropItem.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/player/DropItem.java)**:
+    - Import `ConstItem`.
+    - Thêm phương thức `.thanLinh()` trong cả 2 lớp `DropBuilder` và `PickOneBuilder` (`return equipment(ConstItem.CAP_DO_THAN_LINH);`), loại bỏ hoàn toàn magic number `13`.
+  * **Cập nhật trong Toàn Bộ 19 Boss Hệ Thống**:
+    - **[BlackGoku.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/boss/Black_Goku/BlackGoku.java)**: Dùng `.thanLinh()`, thay danh sách ngọc rồng bằng `ConstItem.NGOC_RONG_2_SAO` .. `7_SAO` và `ConstItem.NHAN_THOI_KHONG_SAI_LECH`.
+    - **[Mabu2H.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/boss/MajinBuu_14h/Mabu2H.java)**: Dùng `.thanLinh()`, thay danh sách ngọc rồng bằng `ConstItem.NGOC_RONG_2_SAO` .. `7_SAO`.
+    - **Nhóm Nappa ([Kuku.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/boss/Nappa/Kuku.java), [MapDauDinh.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/boss/Nappa/MapDauDinh.java), [Rambo.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/boss/Nappa/Rambo.java))**: Thay `18, 19, 20` bằng `ConstItem.NGOC_RONG_5_SAO`, `6_SAO`, `7_SAO`.
+    - **Nhóm Tiểu Đội Sát Thủ ([SO1.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/boss/tieu_doi_sat_thu/SO1.java) .. [SO4.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/boss/tieu_doi_sat_thu/SO4.java), [TDT.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/boss/tieu_doi_sat_thu/TDT.java))**: Thay `18, 19, 20` bằng `ConstItem.NGOC_RONG_5_SAO`, `6_SAO`, `7_SAO`.
+    - **Nhóm Tiểu Đội Sát Thủ Namek ([SO1_NM.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/boss/tieu_doi_sat_thu_namek/SO1_NM.java) .. [SO4_NM.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/boss/tieu_doi_sat_thu_namek/SO4_NM.java), [TDT_NM.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/boss/tieu_doi_sat_thu_namek/TDT_NM.java))**: Thay `861` bằng `ConstItem.HONG_NGOC` và `18, 19, 20` bằng `ConstItem.NGOC_RONG_5_SAO` .. `7_SAO`.
+    - **[Fide.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/boss/Frieza/Fide.java)**: Thay `18, 19, 20` bằng `ConstItem.NGOC_RONG_5_SAO`, `6_SAO`, `7_SAO`.
+    - **Nhóm Android ([Android13.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/boss/Android/Android13.java), [Android14.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/boss/Android/Android14.java), [Android15.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/boss/Android/Android15.java), [Android19.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/boss/Android/Android19.java), [DrKore.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/boss/Android/DrKore.java), [KingKong.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/boss/Android/KingKong.java), [Pic.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/boss/Android/Pic.java), [Poc.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/boss/Android/Poc.java))**: Thay `18, 19, 20` bằng `ConstItem.NGOC_RONG_5_SAO`, `6_SAO`, `7_SAO`.
+  * **Kiểm tra biên dịch**: Đã chạy `compile_check.bat`, đạt `[COMPILE_SUCCESS]`, xuất file `NroBaKhi.jar` thành công.
+
+* **[Chuẩn Hóa Mob.java: Thay Hardcode ID Bằng ConstItem & ConstMob Cho Quái Doanh Trại]**:
+  * **Cập nhật trong [Mob.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/mob/Mob.java#L776-L790)**:
+    - Thay thế các số hardcode magic number bằng hằng số tường minh:
+      * `ConstMob.LINH_DOC_NHAN` (34) $\rightarrow$ `ConstItem.MANH_LINH_DOC_NHAN` (837)
+      * `ConstMob.LINH_DOC_NHAN2` (35) $\rightarrow$ `ConstItem.MANH_LINH_DOC_NHAN_838` (838)
+      * `ConstMob.SOI_XAM` (36) $\rightarrow$ `ConstItem.MANH_SOI_XAM` (839)
+    - Tuân thủ nghiêm ngặt quy tắc Zero-Hardcode, giúp code tự giải thích và an toàn khi refactor.
+  * **Kiểm tra biên dịch**: Đã chạy `compile_check.bat`, đạt `[COMPILE_SUCCESS]`, xuất file `NroBaKhi.jar` thành công.
+
+* **[Chuẩn Hóa RobotVeSi: Nhận Điểm Săn Boss & Rơi Ngọc Rồng 4s–7s]**:
+  * **Cập nhật trong [RobotVeSi.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/boss/doanh_trai/RobotVeSi.java)**:
+    - `reward(Player plKill)`: Thưởng 3 điểm sự kiện săn boss (`this.rewardEventPoint(plKill, 3)`), rơi ngẫu nhiên Ngọc Rồng từ 4 đến 7 sao (`ConstItem.NGOC_RONG_4_SAO` .. `7_SAO`) qua `this.drop(plKill)...execute()`. Không rơi Mảnh thẻ hay Bản đồ kho báu.
+    - Loại bỏ hàm rỗng `active()` và hàm `injured()` trùng lặp, kế thừa 100% xử lý sát thương của lớp cha `Boss.java`.
+    - Bảo toàn nguyên vẹn cơ chế nhảy dù phục kích độc đáo `afk()` (đáp từ y=0 xuống khi người chơi tới gần).
+    - Dọn sạch các import không dùng.
+  * **Kiểm tra biên dịch**: Đã chạy `compile_check.bat`, đạt `[COMPILE_SUCCESS]`, xuất file `NroBaKhi.jar` thành công.
+
+* **[NinjaAoTim: Tích Hợp Thuật Hoán Đổi Vị Trí & Thuật Thế Thân Khi Trúng Đòn]**:
+  * **Cập nhật trong [NinjaAoTim.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/boss/doanh_trai/NinjaAoTim.java)**:
+    - Quản lý danh sách phân thân bằng `List<NinjaClone> clones` an toàn bộ nhớ (`clear()` khi `leaveMap`).
+    - **Tối ưu kiến trúc (Refactoring)**: Tách logic tạo phân thân thành hàm riêng `callNinjaClones()`, gọi `clone.joinMap()` tức thì để clone xuất hiện không độ trễ.
+    - **Tối ưu hiệu năng (Zero-Allocation)**: Viết lại `getRandomAliveClone()` duyệt mảng trực tiếp bằng 2 lượt đếm và chọn, loại bỏ hoàn toàn việc cấp phát `new ArrayList<>()` ở mỗi đòn đánh, giảm áp lực rác cho GC.
+    - **Hoán đổi an toàn**: Bổ sung điều kiện kiểm tra `location.x > 0` trong `swapPosition()` chống glitch tọa độ 0.
+    - **Thuật Thế Thân (50% cơ hội)**: Khi Boss thật bị tấn công trong lúc vẫn còn Clone sống xung quanh, có 50% tỉ lệ kích hoạt thế thân (chat: `"Đó chỉ là tàn ảnh thôi!"`, tráo vị trí, chuyển sát thương cho Clone chịu thay).
+    - **Giai đoạn kết liễu**: Khi người chơi đã tiêu diệt sạch toàn bộ các NinjaClone, Boss thật không còn ai để thế thân nữa và nhận sát thương trực tiếp từ 50% về 0 bình thường.
+  * **Kiểm tra biên dịch**: Đã chạy `compile_check.bat`, đạt `[COMPILE_SUCCESS]`, xuất file `NroBaKhi.jar` thành công.
+
+* **[NinjaAoTim: Chặn Máu 50% Chống One-Shot & Gọi Ngẫu Nhiên 4-6 Clone (50% HP Boss Hiện Tại)]**:
+  * **Cập nhật trong [NinjaAoTim.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/boss/doanh_trai/NinjaAoTim.java#L57-L95)**:
+    - Khi nhận đòn làm máu tụt xuống $\le 50\%$ HP tối đa mà chưa phân thân (`!this.calledNinja`):
+      * Cố định ngay máu boss ở mốc 50% HP (`this.nPoint.hp = halfHp;`), ngăn chặn hoàn toàn việc bị One-shot đòn đầu.
+      * Gửi gói tin cập nhật máu cho map qua `PlayerService.gI().sendInfoHp(this)`.
+      * Chat câu thoại `"Phân thân chi thuật!"`.
+      * Triệu hồi ngẫu nhiên từ 4 đến 6 NinjaClone (`Util.nextInt(4, 6)`), mỗi clone sở hữu máu = 50% máu hiện tại của Boss (`this.nPoint.hp / 2`).
+      * Hóa giải đòn đánh đó (`return 0`).
+    - Sau khi đã phân thân (`this.calledNinja = true`), các đòn đánh tiếp theo trừ máu từ 50% về 0 bình thường qua `super.injured(...)`.
+  * **Kiểm tra biên dịch**: Đã chạy `compile_check.bat`, đạt `[COMPILE_SUCCESS]`, xuất file `NroBaKhi.jar` thành công.
+
+* **[Chuẩn Hóa Thưởng Cho NinjaAoTim & Tách Biệt NinjaClone (Không Cộng Điểm, Không Mảnh Thẻ)]**:
+  * **Cập nhật trong [NinjaAoTim.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/boss/doanh_trai/NinjaAoTim.java)**:
+    - `reward(Player plKill)`: Gọi `super.reward(plKill)` xác nhận nhiệm vụ, cộng 3 điểm sự kiện (`rewardEventPoint`), gom rơi đồ 1 giỏ `this.drop(plKill)...execute()`: Ngọc Rồng 4s–7s, Mảnh Ninja Áo Tím (ID 841), Bản đồ kho báu (ID 611).
+    - `injured()`: Giữ nguyên cơ chế phân thân 4-6 NinjaClone khi HP <= 50%, ủy quyền cho `super.injured(plAtt, damage, piercing, isMobAttack)`. Xóa bỏ `active()` rỗng.
+  * **Cập nhật trong [NinjaClone.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/boss/doanh_trai/NinjaClone.java)**:
+    - `reward(Player plKill)`: Loại bỏ hoàn toàn cộng điểm săn boss (`rewardEventPoint`), không gọi `super.reward`, không rơi Mảnh Ninja Áo Tím. Sử dụng trực tiếp `.rate(10)` của `DropBuilder` thay vì khối `if (Util.isTrue(...))` bên ngoài để rơi ngẫu nhiên Ngọc Rồng 4s–7s.
+    - `injured()`: Tối giản hóa ủy quyền cho `super.injured(...)` với 20% né "Xí hụt".
+  * **Kiểm tra biên dịch**: Đã chạy `compile_check.bat`, đạt `[COMPILE_SUCCESS]`, xuất file `NroBaKhi.jar` thành công.
+
+* **[TrungUyThep: Cấu Hình Skill Đấm Chỉ Gây 10% Dame]**:
+  * **Cập nhật trong [TrungUyThep.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/boss/doanh_trai/TrungUyThep.java#L44-L60)**:
+    - Nhận diện các chiêu đấm bằng phương thức chuẩn `SkillUtil.isUseSkillDam(plAtt)` (kiểm tra an toàn null trên `plAtt`, `playerSkill`, `skillSelect`): bao gồm 5 chiêu đấm cận chiến của 3 hành tinh (`DRAGON`, `DEMON`, `GALICK`, `KAIOKEN`, `LIEN_HOAN`).
+    - Nếu trúng skill đấm: `damage = damage / 10;` (chỉ gây 10% sát thương), các skill chưởng khác giữ nguyên 100% sát thương.
+    - Giữ nguyên 20% né chiêu *"Xí hụt"* nếu không phải đòn xuyên thấu (`!piercing`).
+    - Ủy quyền toàn bộ xử lý trừ HP, phá khiên và tử trận cho `super.injured(plAtt, damage, piercing, isMobAttack)`.
+  * **Kiểm tra biên dịch**: Đã chạy `compile_check.bat`, đạt `[COMPILE_SUCCESS]`, xuất file `NroBaKhi.jar` thành công.
+
+* **[Chuẩn Hóa Phần Thưởng & Tối Giản Hóa TrungUyThep Bằng Kế Thừa Lớp Cha Boss]**:
+  * **Cập nhật trong [TrungUyThep.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/boss/doanh_trai/TrungUyThep.java)**:
+    - **`reward(Player plKill)`**:
+      * Gọi `super.reward(plKill)` để hoàn thành nhiệm vụ tiêu diệt Boss trung tâm.
+      * Thưởng 5 điểm sự kiện `this.rewardEventPoint(plKill, 5)`.
+      * Gom rơi đồ vào 1 giỏ `this.drop(plKill)...execute()`: Rơi ngẫu nhiên Ngọc Rồng từ 4 đến 7 sao (`ConstItem.NGOC_RONG_4_SAO` .. `7_SAO`) và 1 Bản đồ kho báu (`ConstItem.BAN_DO_KHO_BAU`). *(Lưu ý: Hệ thống thẻ sưu tầm NRO gốc không có thẻ của Trung Úy Thép)*.
+    - **`attack()`**:
+      * Giới hạn phạm vi tấn công trong sàn tháp tầng 3 Doanh trại (`640 <= x <= 980`).
+      * Nếu boss văng ra khỏi sàn tháp, tự động đưa về vị trí trung tâm (`884, 312`).
+      * Ủy quyền xử lý chiến đấu toàn diện cho `super.attack()`.
+      * Dọn dẹp triệt để các hàm thừa: `goToXY()`, `goToPlayer()`, `getY()`, biến `lastTimeMove`.
+    - **`injured()`**:
+      * Giữ nguyên cơ chế đặc trưng "mình đồng da sắt" của Trung Úy Thép: 20% tỉ lệ né đòn "Xí hụt" và giảm 50% sát thương nhận vào (`damage / 2`).
+      * Ủy quyền toàn bộ việc trừ máu, vỡ khiên, phản đòn và xử lý hạ gục cho `super.injured(plAtt, damage / 2, piercing, isMobAttack)`.
+    - **Dọn dẹp code**: Xóa bỏ `active()` rỗng, loại bỏ các import không sử dụng.
+  * **Kiểm tra biên dịch**: Đã chạy `compile_check.bat`, đạt `[COMPILE_SUCCESS]`, xuất file `NroBaKhi.jar` thành công.
+
+* **[Xóa Bỏ injured() Thừa Trong TrungUyXanhLo Kế Thừa Lớp Cha Boss]**:
+  * **Cập nhật trong [TrungUyXanhLo.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/boss/doanh_trai/TrungUyXanhLo.java#L47-L65)**:
+    - Loại bỏ hoàn toàn hàm `injured()` thừa (không có cơ chế đặc biệt như Bulon của Trung Úy Trắng).
+    - Kế thừa 100% `injured()` chuẩn của `Boss.java`: Tự động tính toán phòng ngự (Def), né đòn theo `tlNeDon`, vỡ khiên năng lượng, trừ máu và xử lý khi chết.
+
+* **[Gom Đợt Rơi Đồ Vào 1 Giỏ execute() Duy Nhất (TrungUyTrang & TrungUyXanhLo)]**:
+  * **Cập nhật trong [TrungUyTrang.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/boss/doanh_trai/TrungUyTrang.java#L33-L49)**:
+    - Gom tất cả các món đồ (Ngọc Rồng 4s–7s, Mảnh Trung úy Trắng) vào cùng 1 chuỗi `this.drop(plKill)...execute()`, kích hoạt rơi hình cánh sen (Fan-Out) tránh đè tọa độ.
+  * **Cập nhật trong [TrungUyXanhLo.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/boss/doanh_trai/TrungUyXanhLo.java#L28-L45)**:
+    - Gom tất cả các món đồ (Ngọc Rồng 4s–7s, Mảnh Trung úy Xanh Lơ, Bản đồ kho báu) vào cùng 1 chuỗi `this.drop(plKill)...execute()`.
+
+* **[Nâng Cấp Phần Thưởng Rơi Đồ Trung Úy Xanh Lơ (NR 4s–7s, Thẻ Sưu Tầm & Bản Đồ Kho Báu)]**:
+  * **Cập nhật trong [TrungUyXanhLo.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/boss/doanh_trai/TrungUyXanhLo.java#L28-L52)**:
+    - Đồng bộ chuẩn `super.reward(plKill)` và `this.drop(plKill)`:
+      * `this.drop(plKill).random(17, 18, 19, 20).execute()`: Rơi ngẫu nhiên 1 viên Ngọc Rồng từ 4 sao đến 7 sao.
+      * `this.drop(plKill).item(ConstItem.MANH_TRUNG_UY_XANH_LO).execute()`: Rơi Thẻ sưu tầm (Mảnh Trung úy Xanh Lơ ID 842).
+      * `this.drop(plKill).item(ConstItem.BAN_DO_KHO_BAU, 1).execute()`: Rơi 1 Bản đồ kho báu (ID 611).
+      * `this.drop(plKill).item(1824).execute()`: Rơi vật phẩm sự kiện / nhiệm vụ Doanh Trại (ID 1824).
+    - Dọn dẹp hàm `active()` dư thừa.
+
+* **[Nâng Cấp Phần Thưởng Rơi Đồ Trung Úy Trắng (Ngọc Rồng 4s–7s & Thẻ Sưu Tầm)]**:
+  * **Cập nhật trong [TrungUyTrang.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/boss/doanh_trai/TrungUyTrang.java#L33-L53)**:
+    - Sử dụng chuẩn `this.drop(plKill)` (Fluent DropBuilder) thay cho việc tạo thủ công `ItemMap`:
+      * `this.drop(plKill).random(17, 18, 19, 20).execute()`: Rơi ngẫu nhiên 1 viên Ngọc Rồng từ 4 sao đến 7 sao.
+      * `this.drop(plKill).item(ConstItem.MANH_TRUNG_UY_TRANG).execute()`: Rơi thẻ sưu tầm (Mảnh Trung úy Trắng ID 840).
+      * `this.drop(plKill).item(1824).execute()`: Rơi vật phẩm nhiệm vụ Doanh Trại (ID 1824).
+    - Giữ nguyên `rewardEventPoint(plKill, 5)` và `TaskService.checkDoneTaskKillBoss(plKill, this)`.
+
+* **[Tối Giản Hóa attack() Và injured() Của TrungUyTrang Bằng Kế Thừa Lớp Cha]**:
+  * **Cập nhật trong [TrungUyTrang.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/boss/doanh_trai/TrungUyTrang.java#L70-L100)**:
+    - Loại bỏ các hàm phụ trợ dư thừa `goToXY(...)`, `goToPlayer(...)` và hàm rỗng `active()`.
+    - Tái cấu trúc `attack()` theo mô hình kế thừa OOP sạch: Chỉ giữ lại logic giới hạn người chơi trong sàn tháp Doanh Trại (`755 <= x <= 1060`) và dịch chuyển tức thời vào trận khi boss ở vị trí spawn (`x < 775`), sau đó ủy quyền toàn bộ cho `super.attack()`.
+    - Tối ưu `injured()`: Chỉ kiểm tra 2 Bulon còn sống thì miễn nhiễm, còn lại ủy quyền cho `super.injured(...)` đảm bảo trừ máu và chết đúng quy chuẩn.
+
+* **[Chuẩn Hóa Builder Cho Toàn Bộ Boss Doanh Trại Trong BossesData.java]**:
+  * **Cập nhật trong [BossesData.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/boss/BossesData.java#L1138-L1275)**:
+    - Xây dựng đầy đủ các hàm sinh `BossData` bằng `BossData.builder()` cho toàn bộ 6 Boss Doanh Trại:
+      * `TRUNG_UY_XANH_LO(int dame, int hp)`
+      * `TRUNG_UY_TRANG(int dame, int hp)`
+      * `TRUNG_UY_THEP(int dame, int hp)`
+      * `NINJA_AO_TIM(int dame, int hp)`
+      * `NINJA_CLONE(int dame, int hp)`
+      * `ROBOT_VE_SI(int id, int dame, int hp)` & overload `ROBOT_VE_SI(int dame, int hp)`
+    - Cú pháp chuẩn hoá `.builder()` tường minh (name, gender, outfit, dame, hp, mapJoin, skillTemp, textS, textM, textE, secondsRest), đảm bảo Thread-Safety 100%.
+  * **Cập nhật trong các Boss Subclasses Doanh Trại**:
+    - [TrungUyXanhLo.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/boss/doanh_trai/TrungUyXanhLo.java#L22-L25): `super(PHOBANDT, BossID.TRUNG_UY_XANH_LO, BossesData.TRUNG_UY_XANH_LO(dame, hp));`
+    - [TrungUyTrang.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/boss/doanh_trai/TrungUyTrang.java#L26-L30): `super(PHOBANDT, BossID.TRUNG_UY_TRANG, BossesData.TRUNG_UY_TRANG(dame, hp));`
+    - [TrungUyThep.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/boss/doanh_trai/TrungUyThep.java#L28-L31): `super(PHOBANDT, BossID.TRUNG_UY_THEP, BossesData.TRUNG_UY_THEP(dame, hp));`
+    - [NinjaAoTim.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/boss/doanh_trai/NinjaAoTim.java#L24-L28): `super(PHOBANDT, BossID.NINJA_AO_TIM, BossesData.NINJA_AO_TIM(dame, hp));`
+    - [NinjaClone.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/boss/doanh_trai/NinjaClone.java#L23-L27): `super(PHOBANDT, id, BossesData.NINJA_CLONE(dame, hp));`
+    - [RobotVeSi.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/boss/doanh_trai/RobotVeSi.java#L22-L25): `super(PHOBANDT, BossID.ROBOT_VE_SI - id, BossesData.ROBOT_VE_SI(id, dame, hp));`
+  * **Biên dịch**: `javac` biên dịch mới 100% thành công vào `build/classes/`. (Lưu ý: `NroBaKhi.jar` đang được tiến trình server game giữ khóa, sẽ tự cập nhật khi restart server).
+
+* **[Nâng Cấp Cơ Chế Hút Đồ Của DropItem.java Chuẩn Gốc NRO]**:
+  * **Cập nhật trong [DropItem.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/player/DropItem.java#L428-L445)**:
+    - Sửa lỗi thứ tự packet: Luôn gửi gói tin rơi đồ `Service.gI().dropItemMap(zone, itemMap);` (`Message 68`) cho Client trước, giúp Client hiển thị đúng animation món đồ rơi ra đất.
+    - Ngay sau đó mới kích hoạt Bùa Thu Hút:
+      * Tự động cộng tiến độ danh hiệu: `BadgesTaskService.updateCountBagesTask(beneficiary, ConstTaskBadges.ONG_THAN_VE_CHAI, 1);`
+      * Gọi `ItemMapService.gI().pickItem(beneficiary, itemMap.itemMapId, true);` để hút thẳng vào hành trang người chơi (hoặc Sư Phụ nếu do Đệ Tử kết liễu).
+    - Tạo hiệu ứng thị giác hoàn hảo: Người chơi nhìn thấy đồ vừa rớt ra đất thì bị Bùa Thu Hút lập tức hút vèo vào người.
+  * **Biên dịch & Đóng gói**: Script `compile_check.bat` chạy thành công 100% (`[COMPILE_SUCCESS]`), cập nhật sạch sẽ vào `NroBaKhi.jar`.
+
+* **[Kích Hoạt Tỉ Lệ Rơi Mảnh Thẻ Quái Doanh Trại Bằng DropItem (Mob.java)]**:
+  * **Cập nhật trong [Mob.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/mob/Mob.java#L787-L799)**:
+    - Áp dụng chuẩn `DropItem.to(player, this.zone, this.location.x, this.location.y).item(cardId).rate(10).execute();` vào `Mob.java`:
+      * Quái 34 (Lính bazooka) $\rightarrow$ Rơi **Mảnh Lính độc nhãn (ID 837)**.
+      * Quái 35 (Lính độc nhãn) $\rightarrow$ Rơi **Mảnh Lính độc nhãn (ID 838)**.
+      * Quái 36 (Sói xám) $\rightarrow$ Rơi **Mảnh Sói xám (ID 839)**.
+    - Cấu hình tỉ lệ rơi 10% bằng mô hình Fluent DropItem: tự động tính raycast mặt đất, kẹp mép bản đồ an toàn (`clampX`), tự nhận diện quyền nhặt đồ.
+  * **Biên dịch & Đóng gói**: Script `compile_check.bat` chạy thành công 100% (`[COMPILE_SUCCESS]`), cập nhật sạch sẽ vào `NroBaKhi.jar`.
+
+* **[Tái Cấu Trúc Phân Định Trách Nhiệm Giữa RedRibbonHQService & RedRibbonHQ]**:
+  * **Chuẩn hóa tầng Dịch vụ (`RedRibbonHQService.java`)**:
+    - Chuyển các hằng số điều kiện vào cửa & cấu hình phòng (`AVAILABLE = 50`, `N_PLAYER_CLAN = 1`, `N_PLAYER_MAP = 1`, `N_DAY_JOIN_CLAN = 1`, `MIN_X_JOIN = 1285`, `MAX_X_JOIN = 1645`, `TIME_RESET_DOANH_TRAI = 86400000L`) về làm Single Source of Truth tại [RedRibbonHQService.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/map/phoban/RedRibbonHQService.java).
+    - Bổ sung hàm tiện ích `getNearbyClanMembers(Player player)` để quét danh sách thành viên cùng bang đang đứng gần NPC tại Map 27.
+    - Chuyển toàn bộ logic thu thập người tham gia và dịch chuyển người chơi (`ChangeMapService.gI().changeMapInYard(...)`) vào `RedRibbonHQService.joinDoanhTrai()`.
+  * **Chuẩn hóa tầng Mô hình phòng phó bản (`RedRibbonHQ.java`)**:
+    - Cho các hằng số điều kiện tham chiếu ngược lại từ `RedRibbonHQService` để đảm bảo tương thích ngược 100% với các class khác (`LinhCanh.java`, `ItemTimeService.java`, `Manager.java`).
+    - Giữ lại thuần túy các hằng số nội tại của phòng phó bản: `TIME_DOANH_TRAI = 1800000`, `TIME_PICK_DOANH_TRAI = 300000`, `MAX_HP_CAP = 2_000_000_000L`, `MAX_DAME_CAP = 200_000_000L`.
+    - Tinh giản hàm `openDoanhTrai(Clan clan, Player opener, List<Player> participants)`: Chỉ tập trung quản lý trạng thái của phòng phó bản (khởi tạo boss, quái, đồng hồ đếm ngược, lưu mốc mở cho bang hội).
+    - Cung cấp overload `openDoanhTrai(Player player)` hỗ trợ tương thích ngược.
+  * **Biên dịch & Đóng gói**: Script `compile_check.bat` chạy thành công 100% (`[COMPILE_SUCCESS]`), cập nhật sạch sẽ vào `NroBaKhi.jar`.
+
+* **[Cân Bằng Chỉ Số Doanh Trại: Bỏ Điểm Sàn, Trần Cố Định 2 Tỷ HP / 200 Triệu Dame]**:
+  * **Cải tiến trong [RedRibbonHQ.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/map/phoban/RedRibbonHQ.java)**:
+    - Loại bỏ việc dùng `clan.membersInGame` (tính cả người offline/AFK ở nhà); chuyển sang tính toán chuẩn 100% dựa trên danh sách người thực tế tham gia Doanh Trại (`participants`).
+    - Bỏ việc nhân/chia tùy tiện với `mob.tempId`.
+    - Loại bỏ điểm sàn: Cho phép chỉ số scale tự nhiên theo sức mạnh thực tế của người chơi.
+    - Thiết lập trần cố định: `MAX_HP_CAP = 2_000_000_000L` (2 tỷ HP) và `MAX_DAME_CAP = 200_000_000L` (200 triệu Dame) cho toàn bộ Quái và Boss trong Doanh Trại, chống 100% lỗi tràn số nguyên âm (`Integer.MAX_VALUE`).
+    - Đồng bộ thống nhất công thức giữa lúc mở phó bản (`init`) và lúc thành viên vào tiếp viện (`updateHPDame`), tránh lỗi Boss bị hồi phục 100% máu khi có đồng đội vào sau.
+  * **Biên dịch**: `javac` biên dịch sạch sẽ 100% vào `build/classes`.
+
+* **[Tối Ưu Kiến Trúc Doanh Trại: Lưu Hồi Chiêu Bang Vào MySQL & Bỏ Mốc Cá Nhân Dư Thừa]**:
+  * **Cơ sở dữ liệu (MySQL Patch 002)**:
+    - Thêm cột `last_time_open_doanhtrai` BIGINT(20) NOT NULL DEFAULT 0 vào bảng `clan` (ghi nhận tại [SQL_PATCHES.md](file:///d:/NgocRongBaKhi/ToolCaiGameV3/SQL_PATCHES.md)).
+    - [Clan.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/clan/Clan.java): Bổ sung hàm `updateLastTimeOpenDoanhTrai()` để ghi trực tiếp mốc mở Doanh Trại vào MySQL.
+    - [Manager.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/server/Manager.java): Khi khởi động server, tự động nạp `clan.lastTimeOpenDoanhTrai` từ bảng `clan`, phục hồi trạng thái `haveGoneDoanhTrai` nếu chưa đủ 24h.
+  * **Tinh giản logic Doanh Trại**:
+    - [RedRibbonHQ.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/map/phoban/RedRibbonHQ.java): Gọi `clan.updateLastTimeOpenDoanhTrai()` khi mở phó bản; loại bỏ kiểm tra `lastTimeJoinDT` khi kéo đồng đội vào.
+    - [RedRibbonHQService.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/map/phoban/RedRibbonHQService.java): Loại bỏ ràng buộc `lastTimeJoinDT`, chỉ kiểm tra thâm niên vào bang $\ge$ 1 ngày và thời gian mở của Bang $\ge$ 24h.
+    - [LinhCanh.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/npc_list/LinhCanh.java): Bỏ chặn mốc cá nhân `lastTimeJoinDT`, kiểm tra duy nhất mốc 24h của Bang; đồng đội chết chạy lại bấm "Tham gia" không bao giờ bị chặn nhầm.
+  * **Biên dịch & Đóng gói**: `compile_check.bat` thành công 100% (`[COMPILE_SUCCESS]`), đóng gói sạch sẽ vào `NroBaKhi.jar`.
+
+* **[Cập Nhật Điều Kiện Mở Doanh Trại & Cơ Chế Cooldown 24 Giờ]**:
+  * **Sửa điều kiện thành viên**:
+    - Nâng `N_PLAYER_CLAN = 5` trong [RedRibbonHQ.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/map/phoban/RedRibbonHQ.java) (Bang hội phải có từ 5 thành viên trở lên mới được mở).
+    - Nâng `N_PLAYER_MAP = 1` trong [RedRibbonHQ.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/map/phoban/RedRibbonHQ.java) (Phải có ít nhất 1 đồng đội cùng bang đứng gần tọa độ 1285..1645).
+  * **Đổi cơ chế hồi mở đợt mới từ qua nửa đêm sang đúng 24 giờ**:
+    - Thêm `TIME_RESET_DOANH_TRAI = 86400000L` (24 giờ = 86.400 giây).
+    - Cập nhật trong [LinhCanh.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/npc_list/LinhCanh.java), [RedRibbonHQ.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/map/phoban/RedRibbonHQ.java) và [RedRibbonHQService.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/map/phoban/RedRibbonHQService.java):
+      * Nếu mở lúc 11h ngày 15/11 thì đúng 11h ngày 16/11 mới được mở tiếp.
+      * Hiển thị chính xác thời gian còn lại đến từng giờ/phút/giây qua `TimeUtil.getDateLeft(..., 86400)`.
+    - Bảo vệ 2 lớp chống bug out/vào lại bang khác & Chuẩn hóa thứ tự chốt chặn:
+      * **Chốt 2 (Lớp Bang Hội)**: Kiểm tra thâm niên gia nhập bang `getNumDateFromJoinTimeToToday() >= 1` TRƯỚC HẾT để từ chối ngay lính mới nhảy bang phá hoại.
+      * **Nhánh Tiếp viện (`clan.doanhTrai != null`)**: Cho phép thành viên hợp lệ vào tiếp viện hoặc quay lại phó bản nếu lỡ chết bay về nhà.
+      * **Chốt 1 (Lớp Cá Nhân)**: `player.lastTimeJoinDT` lưu trực tiếp MySQL `doanhtrai` $\ge$ 24h khi mở đợt mới.
+      * **Hồi chiêu Bang**: `player.clan.lastTimeOpenDoanhTrai` $\ge$ 24h khi mở đợt mới.
+  * **Biên dịch**: `javac` biên dịch mới 100% không lỗi vào `build/classes`.
+
+* **[Hoàn Thành Giai Đoạn 3: Chuẩn Hóa OOP Cho Phân Hệ Bản Đồ Mở Theo Giờ (timed_map/)]**:
+  * **Tạo mới lớp cha trừu tượng `AbstractTimedMapEvent.java`**:
+    - Chuẩn hóa vòng đời mọi sự kiện mở theo giờ (`tick()`, `isEventOpen()`, `getEventMapIds()`).
+    - Phân tách 2 pha: Khi sự kiện mở (`updateActiveZone`, `updateActivePlayer`) và khi sự kiện đóng (`evictPlayersWhenClosed`, `kickOutPlayer`, `onClosedZoneReset`).
+  * **Xây dựng 4 sự kiện mở theo giờ kế thừa `AbstractTimedMapEvent`**:
+    - [BlackBallWarEvent.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/map/timed_map/BlackBallWarEvent.java): Quản lý 7 map Sao Đen (85..91) từ 20h00–21h00, tự động trao thưởng, reset cờ `zone.finishBlackBallWar`.
+    - [MajinBuu12HEvent.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/map/timed_map/MajinBuu12HEvent.java): Quản lý 6 map Ma Bư 12h (114, 115, 117, 118, 119, 120) từ 12h00–13h00, tự động thôi miên/giải bùa.
+    - [MajinBuu14HEvent.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/map/timed_map/MajinBuu14HEvent.java): Quản lý 2 map Ma Bư 14h (127, 128) từ 14h00–15h00, tự động dọn dẹp giữ chỗ `MaBuHold`.
+    - [HirudegarnEvent.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/map/timed_map/HirudegarnEvent.java): Quản lý Map 126 Hirudegarn từ 22h00–23h00.
+  * **Bộ điều phối trung tâm `TimedMapManager.java` & Tiêu diệt 42 Virtual Threads chạy không tải**:
+    - Chuyển đổi [TimedMapManager.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/map/timed_map/TimedMapManager.java) thành Engine trung tâm điều phối 1 luồng duy nhất (`TimedMapManager-Engine`, nhịp 500ms) kiểm soát toàn bộ 16 Map.
+    - Loại bỏ hoàn toàn `implements Runnable` và **35 luồng chạy ngầm 24/24h** trong [BlackBallWar.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/map/timed_map/BlackBallWar.java).
+    - Loại bỏ hoàn toàn `implements Runnable` và **7 luồng chạy ngầm 24/24h** trong [MajinBuu14H.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/map/timed_map/MajinBuu14H.java).
+    - Khởi chạy engine tự động trong [ServerManager.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/server/ServerManager.java#L123).
+  * **Biên dịch & Đóng gói**: Script `compile_check.bat` chạy thành công 100% (`[COMPILE_SUCCESS]`), cập nhật sạch sẽ vào `NroBaKhi.jar`.
+
+* **[Hoàn Thành Giai Đoạn 2: Chuẩn Hóa OOP Cho Toàn Bộ 4 Phó Bản Bang Hội (phoban/)]**:
+  * **Nâng cấp `AbstractClanDungeon.java`**:
+    - Chuẩn hóa vòng lặp `run()` 150ms cố định với `final`, bọc `try-catch` và tự phục hồi sau 1s nếu gặp ngoại lệ nghiêm trọng.
+    - Cung cấp phương thức quản trị luồng `startDungeonThread(String title)` bằng Java Virtual Threads (`Thread.ofVirtual()`).
+    - Nâng các logic chung lên lớp cha: `finish()`, `dispose()`, `clearAllItems()`, `areAllMobsDead()`, `areAllBossesDead()`, `areAllCharactersDead()`.
+    - Thiết lập các Template Method hooks cho các lớp con cài đặt: `kickOut(Player)`, `sendTextTime()`, `removeTextTime()`, `unlinkClan()`, `onResetExtraState()`, `onPlayerFinish(Player)`.
+  * **Tạo mới lớp cha quản lý phòng `AbstractClanDungeonService.java`**:
+    - Generic Service Pool `AbstractClanDungeonService<T extends AbstractClanDungeon>` quản lý tập trung danh sách phòng `rooms`.
+    - Cung cấp cơ chế cấp phát phòng an toàn đa luồng `findAvailableRoom()` với khóa `synchronized` và kiểm tra `!room.isOpened && room.clan == null`.
+    - Chuẩn hóa đăng ký map phó bản qua `registerZone(int roomId, Zone zone)`.
+  * **Tái cấu trúc 4 phó bản và 4 dịch vụ phó bản bang hội**:
+    - [BanDoKhoBau.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/map/phoban/BanDoKhoBau.java) & [TreasureUnderSeaService.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/map/phoban/TreasureUnderSeaService.java): Kế thừa `AbstractClanDungeon` & `AbstractClanDungeonService<BanDoKhoBau>`, Bill Pugh Singleton.
+    - [DestronGas.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/map/phoban/DestronGas.java) & [DestronGasService.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/map/phoban/DestronGasService.java): Kế thừa `AbstractClanDungeon` & `AbstractClanDungeonService<DestronGas>`, Bill Pugh Singleton.
+    - [RedRibbonHQ.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/map/phoban/RedRibbonHQ.java) & [RedRibbonHQService.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/map/phoban/RedRibbonHQService.java): Kế thừa `AbstractClanDungeon` & `AbstractClanDungeonService<RedRibbonHQ>`, Bill Pugh Singleton.
+    - [SnakeWay.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/map/phoban/SnakeWay.java) & [SnakeWayService.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/map/phoban/SnakeWayService.java): Kế thừa `AbstractClanDungeon` & `AbstractClanDungeonService<SnakeWay>`, Bill Pugh Singleton.
+  * **Biên dịch & Đóng gói**: Script `compile_check.bat` chạy thành công 100% (`[COMPILE_SUCCESS]`), cập nhật sạch sẽ vào `NroBaKhi.jar`.
+
+* **[Hoàn Thành Giai Đoạn 1: Vá 5 Lỗi Tiềm Ẩn Hệ Thống Map Theo Tài Liệu chuan_hoa_oop_va_loi_tiem_an_map.md]**:
+  * **Vá Lỗi 1 (Bản Đồ Kho Báu)**: Cập nhật `lastTimeJoinBDKB` khi sang ngày mới trong [TreasureUnderSeaService.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/map/phoban/TreasureUnderSeaService.java) và [ChangeMapService.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/map/service/ChangeMapService.java), khắc phục triệt để bug người chơi đi BĐKB vô hạn lần trong ngày do biến đếm bị reset về 1 liên tục.
+  * **Vá Lỗi 2 (Race Condition Phó Bản)**: Khóa `synchronized` và kiểm tra `!isOpened && clan == null` trên cả 4 Service phó bản ([TreasureUnderSeaService](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/map/phoban/TreasureUnderSeaService.java), [DestronGasService](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/map/phoban/DestronGasService.java), [RedRibbonHQService](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/map/phoban/RedRibbonHQService.java), [SnakeWayService](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/map/phoban/SnakeWayService.java)), chống triệt để bug 2 bang hội mở cùng mili-giây bị nhét chung vào 1 phòng hoặc 1 bang chiếm 2 phòng.
+  * **Vá Lỗi 3 & 4 (NPE Map Trống & Đọc TileMap)**: Đưa kiểm tra an toàn `zoneJoin.map.tileMap == null || zoneJoin.map.tileMap.length == 0` lên TRƯỚC điều kiện `player.isAdmin()` trong [ChangeMapService.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/map/service/ChangeMapService.java#L888-L895) chống crash đen màn hình khi admin dịch chuyển vào map giữ chỗ (như `m116`).
+  * **Vá Lỗi 5 (Gói `-105` Khí Gas)**: Thêm kiểm tra `player.idMark != null && player.idMark.getZoneKhiGasHuyDiet() != null` trong [Controller.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/server/Controller.java#L184-L187) chống giật lùi nhân vật khi client gửi đúp gói `-105`.
+  * **Biên dịch & Đóng gói**: Script `compile_check.bat` chạy thành công 100% (`[COMPILE_SUCCESS]`), cập nhật sạch sẽ vào `NroBaKhi.jar`.
+
 * **[Vá Lỗi NPE Tại TrungUyTrang.leaveMap & RedRibbonHQ.dispose]**:
   * **Sửa lỗi `Cannot assign field isTUTAlive because this.zone is null`**:
     - Khi Trung Úy Trắng bị tiêu diệt trong game, boss đã chuyển sang status `REST` và rời map (`this.zone = null`).

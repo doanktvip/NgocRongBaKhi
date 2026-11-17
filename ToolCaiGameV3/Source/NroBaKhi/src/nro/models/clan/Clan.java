@@ -62,6 +62,7 @@ public class Clan {
     public long timeOpenBanDoKhoBau;
     public long thoiGianHoanThanhBDKB;
     public int levelDoneBanDoKhoBau;
+    public int timesPerDayBDKB;
 
     public SnakeWay ConDuongRanDoc;
     public long lastTimeOpenConDuongRanDoc;
@@ -333,7 +334,7 @@ public class Clan {
         String member = dataArray.toJSONString();
         dataArray.clear();
 
-        String topBanDoKhoBau = "[" + levelDoneBanDoKhoBau + "," + thoiGianHoanThanhBDKB + "]";
+        String topBanDoKhoBau = "[" + levelDoneBanDoKhoBau + "," + thoiGianHoanThanhBDKB + "," + timesPerDayBDKB + "," + lastTimeOpenBanDoKhoBau + "]";
 
         String thongTinLeader = "[" + getLeader().id + "," + getLeader().name + "," + getLeader().head + "," + getLeader().body + "," + getLeader().leg + "]";
 
@@ -392,7 +393,7 @@ public class Clan {
         }
 
         String member = dataArray.toJSONString();
-        String topBanDoKhoBau = "[" + levelDoneBanDoKhoBau + "," + thoiGianHoanThanhBDKB + "]";
+        String topBanDoKhoBau = "[" + levelDoneBanDoKhoBau + "," + thoiGianHoanThanhBDKB + "," + timesPerDayBDKB + "," + lastTimeOpenBanDoKhoBau + "]";
 
         String thongTinLeader = "[" + getLeader().id + "," + getLeader().name + "," + getLeader().head + "," + getLeader().body + "," + getLeader().leg + "]";
 
@@ -439,8 +440,18 @@ public class Clan {
         }
     }
 
+    public void updateLastTimeOpenDoanhTrai() {
+        try (Connection con = LocalManager.gI().getConnection(); PreparedStatement ps = con.prepareStatement("UPDATE clan SET last_time_open_doanhtrai = ? WHERE id = ? LIMIT 1")) {
+            ps.setLong(1, this.lastTimeOpenDoanhTrai);
+            ps.setInt(2, this.id);
+            ps.executeUpdate();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
     public void updatethanhTichBDKB(int clanId) {
-        String topBanDoKhoBau = "[" + levelDoneBanDoKhoBau + "," + thoiGianHoanThanhBDKB + "]";
+        String topBanDoKhoBau = "[" + levelDoneBanDoKhoBau + "," + thoiGianHoanThanhBDKB + "," + timesPerDayBDKB + "," + lastTimeOpenBanDoKhoBau + "]";
         try (Connection con = LocalManager.gI().getConnection(); PreparedStatement ps = con.prepareStatement("UPDATE clan SET thanhTichBDKB = ? WHERE id = ? LIMIT 1")) {
             ps.setString(1, topBanDoKhoBau);
             ps.setInt(2, clanId);
@@ -448,6 +459,10 @@ public class Clan {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    public void updateBDKB() {
+        updatethanhTichBDKB(this.id);
     }
 
     public void updatethanhTichBDKBForLeader() {

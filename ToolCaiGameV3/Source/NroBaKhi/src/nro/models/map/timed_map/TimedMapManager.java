@@ -4,6 +4,7 @@ import nro.models.map.Zone;
 import nro.models.map.service.ChangeMapService;
 import nro.models.map.service.MapService;
 import nro.models.player.Player;
+import nro.models.server.Maintenance;
 import nro.models.services.Service;
 import nro.models.utils.TimeUtil;
 import nro.models.utils.Util;
@@ -14,9 +15,15 @@ import java.util.List;
  * Bộ quản lý tập trung toàn bộ 16 Bản Đồ Mở Theo Giờ (Timed Maps)
  * Đảm bảo cơ chế kiểm tra giờ mở cửa, thông báo chuẩn xác và trục xuất người chơi ngoài giờ.
  */
-public class TimedMapManager {
+public final class TimedMapManager implements Runnable {
 
-    private static TimedMapManager instance;
+    private static final class Holder {
+        private static final TimedMapManager INSTANCE = new TimedMapManager();
+    }
+
+    public static TimedMapManager gI() {
+        return Holder.INSTANCE;
+    }
 
     /**
      * Cờ cấu hình quyền Admin khi ở trong map mở theo giờ:
@@ -25,11 +32,38 @@ public class TimedMapManager {
      */
     public static boolean ALLOW_ADMIN_STAY = false;
 
-    public static TimedMapManager gI() {
-        if (instance == null) {
-            instance = new TimedMapManager();
+    private final List<AbstractTimedMapEvent> timedEvents;
+    private boolean started = false;
+
+    private TimedMapManager() {
+        this.timedEvents = List.of(
+                BlackBallWarEvent.gI(),
+                MajinBuu12HEvent.gI(),
+                MajinBuu14HEvent.gI(),
+                HirudegarnEvent.gI()
+        );
+    }
+
+    public synchronized void start() {
+        if (!started) {
+            started = true;
+            Thread.ofVirtual().name("TimedMapManager-Engine").start(this);
         }
-        return instance;
+    }
+
+    @Override
+    public void run() {
+        while (!Maintenance.isRunning) {
+            long startTime = System.currentTimeMillis();
+            for (AbstractTimedMapEvent event : timedEvents) {
+                try {
+                    event.tick();
+                } catch (Exception e) {
+                    nro.models.utils.Logger.logException(TimedMapManager.class, e, "Lỗi điều phối TimedMapEvent");
+                }
+            }
+            nro.models.utils.Functions.sleep(Math.max(500 - (System.currentTimeMillis() - startTime), 50));
+        }
     }
 
     /**

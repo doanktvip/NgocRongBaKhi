@@ -12,51 +12,67 @@ import nro.models.utils.Util;
 /**
  * Service quản lý hoạt động Bản Đồ Kho Báu (BanDoKhoBau)
  */
-public class TreasureUnderSeaService {
+public class TreasureUnderSeaService extends AbstractClanDungeonService<BanDoKhoBau> {
 
-    private static TreasureUnderSeaService instance;
-
-    public static TreasureUnderSeaService gI() {
-        if (instance == null) {
-            instance = new TreasureUnderSeaService();
-        }
-        return instance;
+    private static final class Holder {
+        private static final TreasureUnderSeaService INSTANCE = new TreasureUnderSeaService();
     }
 
-    public List<BanDoKhoBau> banDoKhoBaus;
+    public static TreasureUnderSeaService gI() {
+        return Holder.INSTANCE;
+    }
+
+    public List<BanDoKhoBau> banDoKhoBaus = this.rooms;
 
     private TreasureUnderSeaService() {
-        this.banDoKhoBaus = new ArrayList<>();
-        for (int i = 0; i < BanDoKhoBau.AVAILABLE; i++) {
-            this.banDoKhoBaus.add(new BanDoKhoBau(i));
-        }
+        super(BanDoKhoBau.AVAILABLE, BanDoKhoBau::new);
     }
 
     public void addMapBanDoKhoBau(int id, Zone zone) {
-        this.banDoKhoBaus.get(id).getZones().add(zone);
+        registerZone(id, zone);
     }
 
-    public void openBanDoKhoBau(Player player, byte level) {
-        if (level >= 1 && level <= 110) {
+    public synchronized void openBanDoKhoBau(Player player, byte level) {
+        if (level >= BanDoKhoBau.MIN_LEVEL && level <= BanDoKhoBau.MAX_LEVEL) {
             if (player.clan != null && player.clan.BanDoKhoBau == null) {
+                if (!player.clan.isLeader(player)) {
+                    Service.gI().sendThongBao(player, "Chỉ bang chủ mới có quyền mở Bản Đồ Kho Báu");
+                    return;
+                }
+                if (!player.isAdmin() && player.nPoint.power < BanDoKhoBau.POWER_CAN_GO_TO_DBKB) {
+                    Service.gI().sendThongBao(player, "Yêu cầu sức mạnh lớn hơn " + Util.numberToMoney(BanDoKhoBau.POWER_CAN_GO_TO_DBKB));
+                    return;
+                }
+                if (Util.canDoWithTime(player.clan.lastTimeOpenBanDoKhoBau, BanDoKhoBau.TIME_RESET_BDKB)) {
+                    player.clan.timesPerDayBDKB = 0;
+                }
+                if (player.clan.timesPerDayBDKB >= BanDoKhoBau.MAX_TIMES_PER_DAY) {
+                    Service.gI().sendThongBao(player, "Bang hội đã mở hang kho báu " + BanDoKhoBau.MAX_TIMES_PER_DAY + " lần trong 24 giờ qua, hẹn gặp lại sau");
+                    return;
+                }
                 Item item = InventoryService.gI().findItemBag(player, 611);
                 if (item != null && item.quantity > 0) {
-                    BanDoKhoBau banDoKhoBau = null;
-                    for (BanDoKhoBau bdkb : this.banDoKhoBaus) {
-                        if (!bdkb.isOpened) {
-                            banDoKhoBau = bdkb;
-                            break;
-                        }
-                    }
+                    BanDoKhoBau banDoKhoBau = findAvailableRoom();
                     if (banDoKhoBau != null) {
-                        if (Util.isAfterMidnight(player.lastTimeJoinBDKB)) {
-                            player.timesPerDayBDKB = 1;
-                        } else if (player.lastTimeJoinBDKB != player.clan.lastTimeOpenBanDoKhoBau) {
-                            if (player.timesPerDayBDKB >= 3) {
-                                Service.gI().sendThongBao(player, "Bạn đã vào hang kho báu 3 lần trong hôm nay, hẹn gặp lại ngày mai");
-                                return;
-                            }
+                        if (Util.canDoWithTime(player.lastTimeJoinBDKB, BanDoKhoBau.TIME_RESET_BDKB)) {
+                            player.timesPerDayBDKB = 0;
                         }
+                        if (player.timesPerDayBDKB >= BanDoKhoBau.MAX_TIMES_PER_DAY) {
+                            Service.gI().sendThongBao(player, "Bạn đã vào hang kho báu " + BanDoKhoBau.MAX_TIMES_PER_DAY + " lần trong 24 giờ qua, hẹn gặp lại sau");
+                            return;
+                        }
+
+                        long now = System.currentTimeMillis();
+                        if (player.clan.timesPerDayBDKB == 0) {
+                            player.clan.lastTimeOpenBanDoKhoBau = now;
+                        }
+                        player.clan.timesPerDayBDKB++;
+                        player.clan.updateBDKB();
+
+                        if (player.timesPerDayBDKB == 0) {
+                            player.lastTimeJoinBDKB = now;
+                        }
+                        player.timesPerDayBDKB++;
 
                         InventoryService.gI().subQuantityItemsBag(player, item, 1);
                         InventoryService.gI().sendItemBags(player);

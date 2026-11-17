@@ -31,6 +31,7 @@ import nro.models.consts.ConstTaskBadges;
 import nro.models.player.Inventory;
 import nro.models.server.Manager;
 import nro.models.services.ClanService;
+import nro.models.map.phoban.BanDoKhoBau;
 import nro.models.map.service.ChangeMapService;
 import nro.models.services.PlayerService;
 import nro.models.server.ServerLog;
@@ -442,7 +443,7 @@ public class Input {
                 }
                 case CHOOSE_LEVEL_BDKB -> {
                     int level = Integer.parseInt(text[0]);
-                    if (level >= 1 && level <= 110) {
+                    if (level >= BanDoKhoBau.MIN_LEVEL && level <= BanDoKhoBau.MAX_LEVEL) {
                         Npc npc = NpcManager.getByIdAndMap(ConstNpc.QUY_LAO_KAME, player.zone.map.mapId);
                         if (npc != null) {
                             npc.createOtherMenu(player, ConstNpc.MENU_ACCEPT_GO_TO_BDKB,
@@ -682,7 +683,7 @@ public class Input {
     }
 
     public void createFormChooseLevelBDKB(Player pl) {
-        createForm(pl, CHOOSE_LEVEL_BDKB, "Hãy chọn cấp độ hang kho báu từ 1-110", new SubInput("Cấp độ", NUMERIC));
+        createForm(pl, CHOOSE_LEVEL_BDKB, "Hãy chọn cấp độ hang kho báu từ "+BanDoKhoBau.MIN_LEVEL+"-" + BanDoKhoBau.MAX_LEVEL, new SubInput("Cấp độ", NUMERIC));
     }
 
     public void createFormChooseLevelCDRD(Player pl) {

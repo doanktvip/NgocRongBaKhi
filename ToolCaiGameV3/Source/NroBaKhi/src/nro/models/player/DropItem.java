@@ -12,6 +12,9 @@ import nro.models.services.ItemService;
 import nro.models.services.RewardService;
 import nro.models.services.Service;
 import nro.models.utils.Util;
+import nro.models.consts.ConstItem;
+import nro.models.consts.ConstTaskBadges;
+import nro.models.task.BadgesTaskService;
 
 /**
  * Hệ thống rơi vật phẩm chuẩn (Next-Gen Fluent Drop System).
@@ -185,6 +188,13 @@ public class DropItem {
                 this.itemsToDrop.add(it);
             }
             return this;
+        }
+
+        /**
+         * Rơi trang bị Thần Linh (Cấp độ ConstItem.CAP_DO_THAN_LINH = 13).
+         */
+        public DropBuilder thanLinh() {
+            return equipment(ConstItem.CAP_DO_THAN_LINH);
         }
 
         /**
@@ -425,18 +435,14 @@ public class DropItem {
                     }
                 }
 
-                // 4. Xử lý Bùa Thu Hút (nếu được phép)
-                if (allowAutoPick && beneficiary != null && DropItem.hasCharmThuHut(beneficiary)) {
-                    ItemMapService.gI().pickItem(beneficiary, itemMap.itemMapId, true);
-                    if (itemMap.isPickedUp) {
-                        result.add(itemMap);
-                        continue;
-                    }
-                }
-
-                // 5. Gửi Message 68 cho map
+                // 4. Luôn gửi Message 68 cho map trước (để Client thấy món đồ rơi ra đất)
                 Service.gI().dropItemMap(zone, itemMap);
                 result.add(itemMap);
+
+                // 5. Ngay lập tức hút vào túi nếu có Bùa Thu Hút (chuẩn hutItem gốc)
+                if (allowAutoPick && beneficiary != null && DropItem.hasCharmThuHut(beneficiary)) {
+                    ItemMapService.gI().pickItem(beneficiary, itemMap.itemMapId, true);
+                }
             }
 
             return result;
@@ -512,6 +518,13 @@ public class DropItem {
         public PickOneBuilder equipment(int level) {
             if (currentTier != null) currentTier.builder.equipment(level);
             return this;
+        }
+
+        /**
+         * Rơi trang bị Thần Linh (Cấp độ ConstItem.CAP_DO_THAN_LINH = 13).
+         */
+        public PickOneBuilder thanLinh() {
+            return equipment(ConstItem.CAP_DO_THAN_LINH);
         }
 
         public PickOneBuilder equipment(int minLevel, int maxLevel) {

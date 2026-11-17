@@ -1,5 +1,6 @@
 package nro.models.services;
 
+import nro.models.consts.ConstItem;
 import nro.models.item.Item;
 import nro.models.item.Item.ItemOption;
 import nro.models.player.Player;
@@ -1787,7 +1788,13 @@ public class RewardService {
         // Cấp 12 (Tương Lai 4)
         { {233, 237, 241}, {245, 249, 253}, {257, 261, 265}, {269, 273, 277}, {281} },
         // Cấp 13 (Thần Linh)
-        { {555, 557, 559}, {556, 558, 560}, {562, 564, 566}, {563, 565, 567}, {561} }
+        {
+            {ConstItem.AO_THAN_LINH, ConstItem.AO_THAN_NAMEC, ConstItem.AO_THAN_XAYDA},
+            {ConstItem.QUAN_THAN_LINH, ConstItem.QUAN_THAN_NAMEC, ConstItem.QUAN_THAN_XAYDA},
+            {ConstItem.GANG_THAN_LINH, ConstItem.GANG_THAN_NAMEC, ConstItem.GANG_THAN_XAYDA},
+            {ConstItem.GIAY_THAN_LINH, ConstItem.GIAY_THAN_NAMEC, ConstItem.GIAY_THAN_XAYDA},
+            {ConstItem.NHAN_THAN_LINH}
+        }
     };
 
     /**
@@ -1876,6 +1883,13 @@ public class RewardService {
         }
         int level = Util.nextInt(minLevel, maxLevel);
         return randItemDoCap(level);
+    }
+
+    /**
+     * Tạo đối tượng Item Thần Linh hoàn chỉnh (Cấp độ ConstItem.CAP_DO_THAN_LINH = 13).
+     */
+    public Item randItemDoThanLinh() {
+        return randItemDoCap(ConstItem.CAP_DO_THAN_LINH);
     }
 
 }

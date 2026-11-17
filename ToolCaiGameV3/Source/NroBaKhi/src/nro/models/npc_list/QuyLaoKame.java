@@ -134,11 +134,8 @@ public class QuyLaoKame extends Npc {
             case 4:
                 handleMenu4(player, select);
                 break;
-            case ConstNpc.MENU_OPENED_DBKB:
-                handleMenuOpenedDBKB(player, select);
-                break;
             case ConstNpc.MENU_OPEN_DBKB:
-                handleMenuOpenDBKB(player, select);
+                handleMenuTreasureMap(player, select);
                 break;
             case ConstNpc.MENU_ACCEPT_GO_TO_BDKB:
                 handleMenuAcceptGoToBDKB(player, select);
@@ -308,7 +305,7 @@ public class QuyLaoKame extends Npc {
 
     private void handleTreasureMap(Player player) {
         if (player.clan != null && player.clan.BanDoKhoBau != null) {
-            this.createOtherMenu(player, ConstNpc.MENU_OPENED_DBKB, "Bang hội con đang ở hang kho báu cấp " + player.clan.BanDoKhoBau.level + "\ncon có muốn đi cùng họ không?", "Top\nBang hội", "Thành tích\nBang", "Đồng ý", "Từ chối");
+            this.createOtherMenu(player, ConstNpc.MENU_OPEN_DBKB, "Bang hội con đang ở hang kho báu cấp " + player.clan.BanDoKhoBau.level + "\ncon có muốn đi cùng họ không?", "Top\nBang hội", "Thành tích\nBang", "Đồng ý", "Từ chối");
         } else {
             this.createOtherMenu(player, ConstNpc.MENU_OPEN_DBKB, "Đây là bản đồ kho báu hải tặc tí hon\nCác con cứ yên tâm lên đường\nỞ đây có ta lo\nNhớ chọn cấp độ vừa sức mình nhé", "Top\nBang hội", "Thành tích\nBang", "Chọn\ncấp độ", "Từ chối");
         }
@@ -320,38 +317,59 @@ public class QuyLaoKame extends Npc {
         }
     }
 
-    private void handleMenuOpenedDBKB(Player player, int select) {
-        if (select == 0) {
-            Service.gI().showTopClanBDKB(player);
-        } else if (select == 1) {
-            Service.gI().showMyTopClanBDKB(player);
-        } else if (select == 2) {
-            if (player.isAdmin() || player.nPoint.power >= BanDoKhoBau.POWER_CAN_GO_TO_DBKB) {
-                if (player.clan.BanDoKhoBau != null) {
-                    ChangeMapService.gI().goToDBKB(player);
-                } else {
-                    this.npcChat(player, "Bang hội của con hiện không có hang kho báu đang hoạt động.");
+    private void handleMenuTreasureMap(Player player, int select) {
+        switch (select) {
+            case 0 -> Service.gI().showTopClanBDKB(player);
+            case 1 -> Service.gI().showMyTopClanBDKB(player);
+            case 2 -> {
+                if (player.clan == null) {
+                    Service.gI().sendThongBao(player, "Hãy vào bang hội trước");
+                    return;
                 }
-            } else {
-                this.npcChat(player, "Yêu cầu sức mạnh lớn hơn " + Util.numberToMoney(BanDoKhoBau.POWER_CAN_GO_TO_DBKB));
-            }
-        }
-    }
+                if (!player.isAdmin() && player.nPoint.power < BanDoKhoBau.POWER_CAN_GO_TO_DBKB) {
+                    this.npcChat(player, "Yêu cầu sức mạnh lớn hơn " + Util.numberToMoney(BanDoKhoBau.POWER_CAN_GO_TO_DBKB));
+                    return;
+                }
 
-    private void handleMenuOpenDBKB(Player player, int select) {
-        if (select == 0) {
-            Service.gI().showTopClanBDKB(player);
-        } else if (select == 1) {
-            Service.gI().showTopClanBDKB(player);
-        } else if (select == 2) {
-            if (player.clan == null) {
-                Service.gI().sendThongBao(player, "Hãy vào bang hội trước");
-                return;
-            }
-            if (player.isAdmin() || player.nPoint.power >= BanDoKhoBau.POWER_CAN_GO_TO_DBKB) {
-                Input.gI().createFormChooseLevelBDKB(player);
-            } else {
-                this.npcChat(player, "Yêu cầu sức mạnh lớn hơn " + Util.numberToMoney(BanDoKhoBau.POWER_CAN_GO_TO_DBKB));
+                // 1. Hang đang mở -> Vào hang đi cùng bang
+                if (player.clan.BanDoKhoBau != null) {
+                    if (Util.canDoWithTime(player.lastTimeJoinBDKB, BanDoKhoBau.TIME_RESET_BDKB)) {
+                        player.timesPerDayBDKB = 0;
+                    }
+                    if (player.clan.lastTimeOpenBanDoKhoBau != player.lastTimeJoinBDKB
+                            && player.timesPerDayBDKB >= BanDoKhoBau.MAX_TIMES_PER_DAY) {
+                        this.npcChat(player, "Con đã vào hang kho báu " + BanDoKhoBau.MAX_TIMES_PER_DAY + " lần trong 24 giờ qua rồi, hẹn gặp lại sau!");
+                        return;
+                    }
+                    ChangeMapService.gI().goToDBKB(player);
+                } 
+                // 2. Hang chưa mở -> Bang chủ mở hang mới
+                else {
+                    if (!player.clan.isLeader(player)) {
+                        this.npcChat(player, "Chỉ bang chủ mới có quyền mở Bản Đồ Kho Báu");
+                        return;
+                    }
+                    if (Util.canDoWithTime(player.clan.lastTimeOpenBanDoKhoBau, BanDoKhoBau.TIME_RESET_BDKB)) {
+                        player.clan.timesPerDayBDKB = 0;
+                    }
+                    if (player.clan.timesPerDayBDKB >= BanDoKhoBau.MAX_TIMES_PER_DAY) {
+                        this.npcChat(player, "Hôm nay Bang hội của con đã mở hang kho báu " + BanDoKhoBau.MAX_TIMES_PER_DAY + " lần trong 24 giờ qua rồi, hẹn gặp lại sau!");
+                        return;
+                    }
+                    if (Util.canDoWithTime(player.lastTimeJoinBDKB, BanDoKhoBau.TIME_RESET_BDKB)) {
+                        player.timesPerDayBDKB = 0;
+                    }
+                    if (player.timesPerDayBDKB >= BanDoKhoBau.MAX_TIMES_PER_DAY) {
+                        this.npcChat(player, "Con đã vào hang kho báu " + BanDoKhoBau.MAX_TIMES_PER_DAY + " lần trong 24 giờ qua rồi, hẹn gặp lại sau!");
+                        return;
+                    }
+                    Item bdkb = InventoryService.gI().findItemBag(player, 611);
+                    if (bdkb == null || bdkb.quantity <= 0) {
+                        this.npcChat(player, "Con phải có Bản đồ kho báu mới có thể mở hang!");
+                        return;
+                    }
+                    Input.gI().createFormChooseLevelBDKB(player);
+                }
             }
         }
     }

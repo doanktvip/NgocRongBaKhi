@@ -33,25 +33,11 @@ public class SnakeWay extends AbstractClanDungeon {
     private long lastTimeUpdateMessage;
     private boolean kickoutcdrd;
     private long timeKickOutCDRD;
-    public List<Boss> bosses = new ArrayList<>();
     public boolean endCDRD;
     public boolean allMobsDead;
 
     public SnakeWay(int id) {
         this.id = id;
-    }
-
-    @Override
-    public void run() {
-        while (!Maintenance.isRunning && isOpened) {
-            try {
-                long startTime = System.currentTimeMillis();
-                update();
-                Functions.sleep(Math.max(150 - (System.currentTimeMillis() - startTime), 10));
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
     }
 
     public void update() {
@@ -176,61 +162,68 @@ public class SnakeWay extends AbstractClanDungeon {
                 }
             }
         }
-        Thread.ofVirtual().name("Con Đường Rắn Độc: " + this.clan.name).start(this);
+        startDungeonThread("Con Đường Rắn Độc");
     }
 
-    public void finish() {
-        for (Zone zone : zones) {
-            for (int i = zone.getPlayers().size() - 1; i >= 0; i--) {
-                if (i < zone.getPlayers().size()) {
-                    Player pl = zone.getPlayers().get(i);
-                    sendThanhTichCDRD(pl);
-                    kickOutOfCDRD(pl);
-                }
-            }
+    @Override
+    protected void onPlayerFinish(Player player) {
+        sendThanhTichCDRD(player);
+    }
 
+    @Override
+    protected void kickOut(Player player) {
+        if (player != null && player.zone != null && player.zone.map != null) {
+            if (MapService.gI().isMapConDuongRanDoc(player.zone.map.mapId)) {
+                ChangeMapService.gI().changeMapBySpaceShip(player, 5, -1, 1038);
+            }
         }
     }
 
-    private void kickOutOfCDRD(Player player) {
-        if (MapService.gI().isMapConDuongRanDoc(player.zone.map.mapId)) {
-            ChangeMapService.gI().changeMapBySpaceShip(player, 5, -1, 1038);
+    @Override
+    protected void sendTextTime() {
+        if (this.clan != null && this.clan.membersInGame != null) {
+            for (Player pl : this.clan.membersInGame) {
+                if (pl != null) {
+                    ItemTimeService.gI().sendTextConDuongRanDoc(pl);
+                }
+            }
         }
     }
 
     private void sendTextConDuongRanDoc() {
-        for (Player pl : this.clan.membersInGame) {
-            ItemTimeService.gI().sendTextConDuongRanDoc(pl);
+        sendTextTime();
+    }
+
+    @Override
+    protected void removeTextTime() {
+        if (this.clan != null && this.clan.membersInGame != null) {
+            for (Player pl : this.clan.membersInGame) {
+                if (pl != null) {
+                    ItemTimeService.gI().removeTextConDuongRanDoc(pl);
+                }
+            }
         }
     }
 
     private void removeTextConDuongRanDoc() {
-        for (Player pl : this.clan.membersInGame) {
-            ItemTimeService.gI().removeTextConDuongRanDoc(pl);
-        }
+        removeTextTime();
     }
 
     public long getNumBossAlive() {
         return bosses.stream().filter(boss -> boss.bossStatus != BossStatus.REST).count();
     }
 
-    public void dispose() {
-        // remove bosses
-        for (Boss boss : bosses) {
-            if (boss != null && !boss.isDie()) {
-                boss.leaveMap();
-            }
-        }
-        this.clearAllItems();
-        this.removeTextConDuongRanDoc();
-        this.bosses.clear();
-        this.allMobsDead = false;
-        this.endCDRD = false;
-        this.isOpened = false;
+    @Override
+    protected void unlinkClan() {
         if (this.clan != null) {
             this.clan.ConDuongRanDoc = null;
-            this.clan = null;
         }
+    }
+
+    @Override
+    protected void onResetExtraState() {
+        this.allMobsDead = false;
+        this.endCDRD = false;
         this.kickoutcdrd = false;
     }
 }

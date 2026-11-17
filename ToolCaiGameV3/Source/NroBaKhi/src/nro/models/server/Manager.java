@@ -393,14 +393,31 @@ public final class Manager {
                     clan.addClanMember(cm);
                 }
                 dataArray = (JSONArray) JSONValue.parse(rs.getString("thanhTichBDKB"));
-                if (dataArray != null && dataArray.size() == 2) {
+                if (dataArray != null && dataArray.size() >= 2) {
                     try {
                         clan.levelDoneBanDoKhoBau = Integer.parseInt(String.valueOf(dataArray.get(0)));
                         clan.thoiGianHoanThanhBDKB = Long.parseLong(String.valueOf(dataArray.get(1)));
+                        if (dataArray.size() >= 4) {
+                            clan.timesPerDayBDKB = Integer.parseInt(String.valueOf(dataArray.get(2)));
+                            clan.lastTimeOpenBanDoKhoBau = Long.parseLong(String.valueOf(dataArray.get(3)));
+                        } else {
+                            clan.timesPerDayBDKB = 0;
+                            clan.lastTimeOpenBanDoKhoBau = 0;
+                        }
                     } catch (NumberFormatException e) {
                         clan.levelDoneBanDoKhoBau = 0;
                         clan.thoiGianHoanThanhBDKB = 0;
+                        clan.timesPerDayBDKB = 0;
+                        clan.lastTimeOpenBanDoKhoBau = 0;
                     }
+                }
+                try {
+                    clan.lastTimeOpenDoanhTrai = rs.getLong("last_time_open_doanhtrai");
+                    if (clan.lastTimeOpenDoanhTrai > 0 && !Util.canDoWithTime(clan.lastTimeOpenDoanhTrai, nro.models.map.phoban.RedRibbonHQ.TIME_RESET_DOANH_TRAI)) {
+                        clan.haveGoneDoanhTrai = true;
+                    }
+                } catch (Exception e) {
+                    clan.lastTimeOpenDoanhTrai = 0;
                 }
                 CLANS.add(clan);
             }

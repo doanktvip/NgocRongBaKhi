@@ -7,6 +7,8 @@ import nro.models.boss.doanh_trai.TrungUyThep;
 import nro.models.boss.doanh_trai.TrungUyTrang;
 import nro.models.boss.doanh_trai.TrungUyXanhLo;
 import nro.models.clan.Clan;
+import nro.models.consts.ConstItem;
+import nro.models.consts.ConstItem;
 import nro.models.map.Zone;
 import nro.models.mob.Mob;
 import nro.models.player.Player;
@@ -26,177 +28,180 @@ import nro.models.utils.Util;
 @lombok.EqualsAndHashCode(callSuper = false)
 public class RedRibbonHQ extends AbstractClanDungeon {
 
-    //bang hội đủ số người mới đc mở
-    public static final int N_PLAYER_CLAN = 1;
-    //số người đứng cùng khu
-    public static final int N_PLAYER_MAP = 0;
-    public static final int AVAILABLE = 50;
+    // Cấu hình điều kiện vào cửa (tham chiếu từ RedRibbonHQService để đảm bảo Single Source of Truth & tương thích ngược)
+    public static final int AVAILABLE = RedRibbonHQService.AVAILABLE;
+    public static final int N_PLAYER_CLAN = RedRibbonHQService.N_PLAYER_CLAN;
+    public static final int N_PLAYER_MAP = RedRibbonHQService.N_PLAYER_MAP;
+    public static final int N_DAY_JOIN_CLAN = RedRibbonHQService.N_DAY_JOIN_CLAN;
+    public static final int MIN_X_JOIN = RedRibbonHQService.MIN_X_JOIN;
+    public static final int MAX_X_JOIN = RedRibbonHQService.MAX_X_JOIN;
+    public static final long TIME_RESET_DOANH_TRAI = RedRibbonHQService.TIME_RESET_DOANH_TRAI;
+
+    // Cấu hình nội tại phòng phó bản
     public static final int TIME_DOANH_TRAI = 1800000;
     public static final int TIME_PICK_DOANH_TRAI = 300000;
-    public static final int N_DAY_JOIN_CLAN = 1;
-    public static final int MIN_X_JOIN = 1285;
-    public static final int MAX_X_JOIN = 1645;
+    public static final long MAX_HP_CAP = 2_000_000_000L; // Trần tối đa 2 tỷ HP
+    public static final long MAX_DAME_CAP = 200_000_000L; // Trần tối đa 200 triệu Dame
 
     public boolean isTimePicking;
     public long lastTimePick;
     public boolean winDT;
-    public List<Boss> bosses = new ArrayList<>();
 
     public RedRibbonHQ(int id) {
         this.id = id;
     }
 
-    @Override
-    public void run() {
-        while (!Maintenance.isRunning && isOpened) {
-            try {
-                long startTime = System.currentTimeMillis();
-                update();
-                Functions.sleep(Math.max(150 - (System.currentTimeMillis() - startTime), 10));
-            } catch (Exception e) {
-                nro.models.utils.Logger.logException(RedRibbonHQ.class, e);
-                Functions.sleep(1000);
-            }
-        }
-    }
-
-    public void openDoanhTrai(Player player) {
+    /**
+     * Mở phòng Doanh Trại và khởi tạo thực thể
+     *
+     * @param clan Bang hội sở hữu
+     * @param opener Người kích hoạt mở
+     * @param participants Danh sách thành viên tham gia thực tế
+     */
+    public void openDoanhTrai(Clan clan, Player opener, List<Player> participants) {
         try {
             this.lastTimeOpen = System.currentTimeMillis();
-            this.clan = player.clan;
-            player.clan.doanhTrai = this;
-            player.clan.playerOpenDoanhTrai = player;
-            player.clan.lastTimeOpenDoanhTrai = this.lastTimeOpen;
-            player.clan.haveGoneDoanhTrai = false;
+            this.clan = clan;
+            clan.doanhTrai = this;
+            clan.playerOpenDoanhTrai = opener;
+            clan.lastTimeOpenDoanhTrai = this.lastTimeOpen;
+            clan.updateLastTimeOpenDoanhTrai();
+            clan.haveGoneDoanhTrai = false;
             sendTextDoanhTrai();
-            //Khởi tạo quái, boss
+            // Khởi tạo quái, boss theo đúng danh sách người tham gia thực tế
             this.isOpened = true;
-            this.init();
+            this.init(participants);
         } catch (Exception e) {
             e.printStackTrace();
-            player.clan.lastTimeOpenDoanhTrai = 0;
-            player.clan.haveGoneDoanhTrai = false;
+            clan.lastTimeOpenDoanhTrai = 0;
+            clan.updateLastTimeOpenDoanhTrai();
+            clan.haveGoneDoanhTrai = false;
             this.dispose();
-            return;
         }
-        List<Player> plJoinDT = new ArrayList();
-        //Đưa thành viên vào doanh trại
-        for (Player pl : player.zone.getPlayers()) {
-            if (pl != null && !pl.equals(player) && pl.clan != null
-                    && pl.clan.equals(player.clan) && pl.location != null
-                    && pl.location.x >= MIN_X_JOIN
-                    && pl.location.x <= MAX_X_JOIN) {
-                plJoinDT.add(pl);
-            }
-        }
-        for (Player pl : plJoinDT) {
-            if (pl.clanMember == null || pl.clanMember.getNumDateFromJoinTimeToToday() < 1 || pl.isDie()) {
-                continue;
-            }
-            pl.lastTimeJoinDT = System.currentTimeMillis();
-            ChangeMapService.gI().changeMapInYard(pl, 53, -1, 60);
-        }
-        player.lastTimeJoinDT = System.currentTimeMillis();
-        ChangeMapService.gI().changeMapInYard(player, 53, -1, 60);
     }
 
-    private void init() {
-        long totalDamage = 0;
-        long totalHp = 0;
-
-        for (Player player : this.clan.membersInGame) {
-            if (player != null && player.nPoint != null) {
-                totalDamage += player.nPoint.dame;
-                totalHp += player.nPoint.hpMax;
+    /**
+     * Overload tương thích ngược cho các lời gọi cũ
+     */
+    public void openDoanhTrai(Player player) {
+        List<Player> participants = new ArrayList<>();
+        participants.add(player);
+        if (player.clan != null) {
+            participants.addAll(RedRibbonHQService.gI().getNearbyClanMembers(player));
+            openDoanhTrai(player.clan, player, participants);
+            for (Player pl : participants) {
+                if (pl != null && pl.zone != null && !pl.isDie()) {
+                    ChangeMapService.gI().changeMapInYard(pl, 53, -1, 60);
+                }
             }
         }
+    }
 
-        // Hồi sinh quái
+    private long[] calculateAvgDameHp(List<Player> participants) {
+        long totalDame = 0;
+        long totalHp = 0;
+        int count = 0;
+        if (participants != null) {
+            for (Player pl : participants) {
+                if (pl != null && pl.nPoint != null) {
+                    totalDame += pl.nPoint.dame;
+                    totalHp += pl.nPoint.hpMax;
+                    count++;
+                }
+            }
+        }
+        int n = Math.max(1, count);
+        long avgDame = Math.max(1L, totalDame / n);
+        long avgHp = Math.max(1L, totalHp / n);
+        return new long[]{avgDame, avgHp, n};
+    }
+
+    private int getMobHp(int mapId, long avgDame) {
+        double mult = switch (mapId) {
+            case 53, 58 -> 3.0;
+            case 59, 62 -> 4.0;
+            case 55, 54 -> 5.0;
+            case 57 -> 6.0;
+            default -> 4.0;
+        };
+        long hp = (long) (avgDame * mult);
+        return (int) Math.min(Math.max(1L, hp), MAX_HP_CAP);
+    }
+
+    private int getMobDame(long avgHp) {
+        long dame = (avgHp * 2) / 100; // 2% HP trung bình của đội
+        return (int) Math.min(Math.max(1L, dame), MAX_DAME_CAP);
+    }
+
+    private void init(List<Player> participants) {
+        long[] stats = calculateAvgDameHp(participants);
+        long avgDame = stats[0];
+        long avgHp = stats[1];
+        long n = stats[2];
+
+        // Hồi sinh quái và khởi tạo Boss theo chỉ số thực tế
         for (Zone zone : this.zones) {
+            int mapId = zone.map.mapId;
+            int mobHp = getMobHp(mapId, avgDame);
+            int mobDame = getMobDame(avgHp);
+
             for (Mob mob : zone.mobs) {
-                long mobTempId = mob.tempId;
-                mob.point.dame = (int) ((mobTempId != 0) ? Math.min(totalHp / mobTempId, 2_147_483_647L) : 0);
-                mob.point.maxHp = (int) ((mobTempId != 0) ? Math.min(totalDamage * mobTempId, 2_147_483_647) : 0);
+                mob.point.dame = mobDame;
+                mob.point.maxHp = mobHp;
                 mob.lvMob = 0;
                 mob.hoiSinh();
                 mob.hoiSinhMobPhoBan();
             }
 
-            long dame = totalHp / 20;
-            long hp = totalDamage * 50;
-
-            if (zone.map.mapId == 59) {
+            if (mapId == 59) {
                 try {
-                    long bossDamage = Math.min(dame, 200_000_000L);
-                    long bossMaxHealth = Math.min(hp, 2_147_483_647L);
-                    bosses.add(new TrungUyTrang(
-                            zone,
-                            (int) bossDamage,
-                            (int) bossMaxHealth
-                    ));
+                    long bHp = Math.min(avgDame * 60 * n, MAX_HP_CAP);
+                    long bDame = Math.min((avgHp * 6) / 100, MAX_DAME_CAP);
+                    bosses.add(new TrungUyTrang(zone, (int) Math.max(1L, bDame), (int) Math.max(1L, bHp)));
                 } catch (Exception e) {
                     nro.models.utils.Logger.logException(RedRibbonHQ.class, e);
                 }
             }
-            if (zone.map.mapId == 62) {
+            if (mapId == 62) {
                 try {
-                    long bossDamage = Math.min((long) (dame * 1.1), 200_000_000L);
-                    long bossMaxHealth = Math.min((long) (hp * 1.1), 2_147_483_647);
-                    bosses.add(new TrungUyXanhLo(
-                            zone,
-                            (int) bossDamage,
-                            (int) bossMaxHealth
-                    ));
+                    long bHp = Math.min(avgDame * 90 * n, MAX_HP_CAP);
+                    long bDame = Math.min((avgHp * 8) / 100, MAX_DAME_CAP);
+                    bosses.add(new TrungUyXanhLo(zone, (int) Math.max(1L, bDame), (int) Math.max(1L, bHp)));
                 } catch (Exception e) {
                     nro.models.utils.Logger.logException(RedRibbonHQ.class, e);
                 }
             }
-            if (zone.map.mapId == 55) {
+            if (mapId == 55) {
                 try {
-                    long bossDamage = Math.min((long) (dame * 1.15), 200_000_000L);
-                    long bossMaxHealth = Math.min((long) (hp * 1.15), 2_147_483_647L);
-                    bosses.add(new TrungUyThep(
-                            zone,
-                            (int) bossDamage,
-                            (int) bossMaxHealth
-                    ));
+                    long bHp = Math.min(avgDame * 120 * n, MAX_HP_CAP);
+                    long bDame = Math.min((avgHp * 10) / 100, MAX_DAME_CAP);
+                    bosses.add(new TrungUyThep(zone, (int) Math.max(1L, bDame), (int) Math.max(1L, bHp)));
                 } catch (Exception e) {
                     nro.models.utils.Logger.logException(RedRibbonHQ.class, e);
                 }
             }
-            if (zone.map.mapId == 54) {
+            if (mapId == 54) {
                 try {
-                    long bossDamage = Math.min((long) (dame * 1.2), 200_000_000L);
-                    long bossMaxHealth = Math.min((long) (hp * 1.2), 2_147_483_647);
-                    bosses.add(new NinjaAoTim(
-                            zone,
-                            clan,
-                            (int) bossDamage,
-                            (int) bossMaxHealth
-                    ));
+                    long bHp = Math.min(avgDame * 150 * n, MAX_HP_CAP);
+                    long bDame = Math.min((avgHp * 12) / 100, MAX_DAME_CAP);
+                    bosses.add(new NinjaAoTim(zone, clan, (int) Math.max(1L, bDame), (int) Math.max(1L, bHp)));
                 } catch (Exception e) {
                     nro.models.utils.Logger.logException(RedRibbonHQ.class, e);
                 }
             }
-
-            if (zone.map.mapId == 57) {
+            if (mapId == 57) {
                 try {
-                    long bossDamage = Math.min((long) (dame * 1.3), 200_000_000L);
-                    long bossMaxHealth = Math.min((long) (hp * 1.3), 2_147_483_647);
+                    long bHp = Math.min(avgDame * 50 * n, MAX_HP_CAP);
+                    long bDame = Math.min((avgHp * 8) / 100, MAX_DAME_CAP);
                     for (int i = 0; i < 4; i++) {
-                        bosses.add(new RobotVeSi(
-                                zone,
-                                i,
-                                (int) bossDamage,
-                                (int) bossMaxHealth
-                        ));
+                        bosses.add(new RobotVeSi(zone, i, (int) Math.max(1L, bDame), (int) Math.max(1L, bHp)));
                     }
                 } catch (Exception e) {
                     nro.models.utils.Logger.logException(RedRibbonHQ.class, e);
                 }
             }
         }
-        Thread.ofVirtual().name("Doanh Trại: " + this.clan.name).start(this);
+        startDungeonThread("Doanh Trại");
     }
 
     public void update() {
@@ -227,50 +232,80 @@ public class RedRibbonHQ extends AbstractClanDungeon {
         }
     }
 
-    public ItemMap NR(Zone zone) {
-        int x = Util.nextInt(100, zone.map.mapWidth - 100);
-        int y = zone.map.yPhysicInTop(x, 100);
-        int nr = Util.isTrue(1, 500) ? Util.nextInt(14, 18) : Util.nextInt(18, 20);
-        ItemMap it = new ItemMap(zone, nr, 1, x, y, -1);
-        return it;
+    /**
+     * Thả 1 mảnh đơn lẻ (quantity = 1, giống Ngọc Rồng) vào một Zone ngẫu nhiên trong Doanh Trại
+     */
+    private void dropSingleCardFragment(int tempId) {
+        if (this.zones == null || this.zones.isEmpty()) {
+            return;
+        }
+        Zone zone = this.zones.get(Util.nextInt(0, this.zones.size() - 1));
+        if (zone != null && zone.map != null) {
+            int x = Util.nextInt(100, zone.map.mapWidth - 100);
+            int y = zone.map.yPhysicInTop(x, 100);
+            ItemMap it = new ItemMap(zone, tempId, 1, x, y, -1);
+            Service.gI().dropItemMap(zone, it);
+        }
     }
 
+    /**
+     * Rải ngẫu nhiên các Mảnh Sưu Tầm
+     * - Mảnh Lính Độc Nhãn (837): 2 - 5 mảnh
+     * - Mảnh Lính Độc Nhãn 2 (838): 2 - 5 mảnh
+     * - Mảnh Sói Xám (839): 2 - 5 mảnh
+     * - Mảnh Trung Úy Trắng (840): 1 - 3 mảnh
+     * - Mảnh Trung Úy Xanh Lơ (842): 1 - 3 mảnh
+     * - Mảnh Ninja Áo Tím (841): 1 - 3 mảnh
+     * - Mảnh Độc Nhãn (859): đúng 1 mảnh
+     * - Mảnh Đội Trưởng Vàng (956): đúng 1 mảnh
+     */
+    public void randomCardFragments() {
+        if (this.zones == null || this.zones.isEmpty()) {
+            return;
+        }
+        int numLinh1 = Util.nextInt(2, 5);
+        for (int i = 0; i < numLinh1; i++) {
+            dropSingleCardFragment(ConstItem.MANH_LINH_DOC_NHAN);
+        }
+
+        int numLinh2 = Util.nextInt(2, 5);
+        for (int i = 0; i < numLinh2; i++) {
+            dropSingleCardFragment(ConstItem.MANH_LINH_DOC_NHAN_838);
+        }
+
+        int numSoi = Util.nextInt(2, 5);
+        for (int i = 0; i < numSoi; i++) {
+            dropSingleCardFragment(ConstItem.MANH_SOI_XAM);
+        }
+
+        int numTrang = Util.nextInt(1, 3);
+        for (int i = 0; i < numTrang; i++) {
+            dropSingleCardFragment(ConstItem.MANH_TRUNG_UY_TRANG);
+        }
+
+        int numXanhLo = Util.nextInt(1, 3);
+        for (int i = 0; i < numXanhLo; i++) {
+            dropSingleCardFragment(ConstItem.MANH_TRUNG_UY_XANH_LO);
+        }
+
+        int numNinja = Util.nextInt(1, 3);
+        for (int i = 0; i < numNinja; i++) {
+            dropSingleCardFragment(ConstItem.MANH_NINJA_AO_TIM);
+        }
+
+        dropSingleCardFragment(ConstItem.MANH_DOC_NHAN);
+        dropSingleCardFragment(ConstItem.MANH_DOI_TRUONG_VANG);
+    }
+
+    /**
+     * Tương thích ngược với các lời gọi cũ
+     */
     public void randomNR() {
-        for (Zone zone : zones) {
-            Service.gI().dropItemMap(zone, NR(zone));
-            Service.gI().dropItemMap(zone, NR(zone));
-            Service.gI().dropItemMap(zone, NR(zone));
-            if (Util.isTrue(1, 2)) {
-                Service.gI().dropItemMap(zone, NR(zone));
-            }
-            if (Util.isTrue(1, 3)) {
-                Service.gI().dropItemMap(zone, NR(zone));
-            }
-            if (Util.isTrue(1, 4)) {
-                Service.gI().dropItemMap(zone, NR(zone));
-            }
-            if (Util.isTrue(1, 5)) {
-                Service.gI().dropItemMap(zone, NR(zone));
-            }
-        }
+        randomCardFragments();
     }
 
-    public void finish() {
-        for (Zone zone : zones) {
-            if (zone != null && zone.getPlayers() != null) {
-                for (int i = zone.getPlayers().size() - 1; i >= 0; i--) {
-                    if (i < zone.getPlayers().size()) {
-                        Player pl = zone.getPlayers().get(i);
-                        if (pl != null) {
-                            kickOutOfDT(pl);
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    private void kickOutOfDT(Player player) {
+    @Override
+    protected void kickOut(Player player) {
         if (player != null && player.zone != null && player.zone.map != null) {
             if (MapService.gI().isMapDoanhTrai(player.zone.map.mapId)) {
                 Service.gI().sendThongBao(player, "Đã hết thời gian, bạn sẽ được đưa về nhà");
@@ -279,27 +314,31 @@ public class RedRibbonHQ extends AbstractClanDungeon {
         }
     }
 
-    private void sendTextDoanhTrai() {
+    @Override
+    protected void sendTextTime() {
         if (this.clan != null && this.clan.membersInGame != null) {
             for (Player pl : this.clan.membersInGame) {
                 if (pl != null) {
-                    ItemTimeService.gI().sendTextDoanhTrai(pl);
+                    if (this.isTimePicking) {
+                        ItemTimeService.gI().sendTextTimePickDoanhTrai(pl);
+                    } else {
+                        ItemTimeService.gI().sendTextDoanhTrai(pl);
+                    }
                 }
             }
         }
+    }
+
+    public void sendTextDoanhTrai() {
+        sendTextTime();
     }
 
     public void sendTextTimePickDoanhTrai() {
-        if (this.clan != null && this.clan.membersInGame != null) {
-            for (Player pl : this.clan.membersInGame) {
-                if (pl != null) {
-                    ItemTimeService.gI().sendTextTimePickDoanhTrai(pl);
-                }
-            }
-        }
+        sendTextTime();
     }
 
-    private void removeTextDoanhTrai() {
+    @Override
+    protected void removeTextTime() {
         if (this.clan != null && this.clan.membersInGame != null) {
             for (Player pl : this.clan.membersInGame) {
                 if (pl != null) {
@@ -309,124 +348,96 @@ public class RedRibbonHQ extends AbstractClanDungeon {
         }
     }
 
+    @Override
+    protected void unlinkClan() {
+        if (this.clan != null) {
+            this.clan.haveGoneDoanhTrai = true;
+            this.clan.doanhTrai = null;
+        }
+    }
+
+    @Override
+    protected void onResetExtraState() {
+        this.winDT = false;
+        this.isTimePicking = false;
+    }
+
     public void updateHPDame() {
-        long totalDame = 0;
-        long totalHp = 0;
-        for (Player pl : this.clan.membersInGame) {
-            if (pl != null && pl.nPoint != null) {
-                totalDame += pl.nPoint.dame;
-                totalHp += pl.nPoint.hpMax;
+        List<Player> participants = new ArrayList<>();
+        for (Zone zone : this.zones) {
+            if (zone != null) {
+                List<Player> players = zone.getPlayers();
+                if (players != null) {
+                    for (Player pl : players) {
+                        if (pl != null && !pl.isBoss && !participants.contains(pl)) {
+                            participants.add(pl);
+                        }
+                    }
+                }
             }
         }
+        if (participants.isEmpty()) {
+            return;
+        }
+        long[] stats = calculateAvgDameHp(participants);
+        long avgDame = stats[0];
+        long avgHp = stats[1];
+        long n = stats[2];
 
-        //update hp dame quái
+        // Cập nhật quái còn sống
         for (Zone zone : this.zones) {
+            int mapId = zone.map.mapId;
+            int mobHp = getMobHp(mapId, avgDame);
+            int mobDame = getMobDame(avgHp);
+
             for (Mob mob : zone.mobs) {
                 if (mob.isDie()) {
                     continue;
                 }
-                long mobTempId = Math.max(1, mob.tempId);
-                mob.point.dame = (int) Math.min(totalHp / mobTempId, (long) Integer.MAX_VALUE);
-                mob.point.maxHp = (int) Math.min((totalDame / 3) * mobTempId, (long) Integer.MAX_VALUE);
-                mob.point.hp = mob.point.maxHp;
+                mob.point.dame = mobDame;
+                mob.point.maxHp = mobHp;
+                mob.point.hp = Math.min(mob.point.hp, mob.point.maxHp);
                 mob.setTiemNang();
             }
         }
 
-        long dame = totalHp / 20;
-        long hp = totalDame * 50;
+        // Cập nhật Boss còn sống
         for (Boss boss : bosses) {
             if (boss == null || boss.isDie() || boss.zone == null || boss.zone.map == null) {
                 continue;
             }
             int mapId = boss.zone.map.mapId;
-            if (mapId == 59) {
-                try {
-                    long bossDamage = (dame);
-                    long bossMaxHealth = (hp);
-                    bossDamage = Math.min(bossDamage, 200000000L);
-                    bossMaxHealth = Math.min(bossMaxHealth, 2000000000L);
-                    boss.nPoint.hpMax = (int) bossMaxHealth;
-                    boss.nPoint.dame = (int) bossDamage;
-                    boss.nPoint.hp = boss.nPoint.hpMax;
-                } catch (Exception exception) {
+            long bDame = 0;
+            long bHp = 0;
+            switch (mapId) {
+                case 59 -> {
+                    bHp = Math.min(avgDame * 60 * n, MAX_HP_CAP);
+                    bDame = Math.min((avgHp * 6) / 100, MAX_DAME_CAP);
                 }
-            } else if (mapId == 62) {
-                try {
-                    long bossDamage = (long) (dame * 1.1);
-                    long bossMaxHealth = (long) (hp * 1.1);
-                    bossDamage = Math.min(bossDamage, 200000000L);
-                    bossMaxHealth = Math.min(bossMaxHealth, 2000000000L);
-                    boss.nPoint.hpMax = (int) bossMaxHealth;
-                    boss.nPoint.dame = (int) bossDamage;
-                    boss.nPoint.hp = boss.nPoint.hpMax;
-                } catch (Exception exception) {
+                case 62 -> {
+                    bHp = Math.min(avgDame * 90 * n, MAX_HP_CAP);
+                    bDame = Math.min((avgHp * 8) / 100, MAX_DAME_CAP);
                 }
-            } else if (mapId == 55) {
-                try {
-                    long bossDamage = (long) (dame * 1.15);
-                    long bossMaxHealth = (long) (hp * 1.15);
-                    bossDamage = Math.min(bossDamage, 200000000L);
-                    bossMaxHealth = Math.min(bossMaxHealth, 2000000000L);
-                    boss.nPoint.hpMax = (int) bossMaxHealth;
-                    boss.nPoint.dame = (int) bossDamage;
-                    boss.nPoint.hp = boss.nPoint.hpMax;
-                } catch (Exception exception) {
+                case 55 -> {
+                    bHp = Math.min(avgDame * 120 * n, MAX_HP_CAP);
+                    bDame = Math.min((avgHp * 10) / 100, MAX_DAME_CAP);
                 }
-            } else if (mapId == 54) {
-                try {
-                    long bossDamage = (long) (dame * 1.2);
-                    long bossMaxHealth = (long) (hp * 1.2);
-                    bossDamage = Math.min(bossDamage, 200000000L);
-                    bossMaxHealth = Math.min(bossMaxHealth, 2000000000L);
+                case 54 -> {
+                    bHp = Math.min(avgDame * 150 * n, MAX_HP_CAP);
+                    bDame = Math.min((avgHp * 12) / 100, MAX_DAME_CAP);
                     if (boss.id >= -14 && boss.id <= -9) {
-                        bossDamage /= 10;
-                        bossMaxHealth /= 10;
+                        bDame = Math.max(1, bDame / 10);
+                        bHp = Math.max(1, bHp / 10);
                     }
-                    boss.nPoint.hpMax = (int) bossMaxHealth;
-                    boss.nPoint.dame = (int) bossDamage;
-                    boss.nPoint.hp = boss.nPoint.hpMax;
-                } catch (Exception exception) {
                 }
-            } else if (mapId == 57) {
-                try {
-                    long bossDamage = (long) (dame * 1.3);
-                    long bossMaxHealth = (long) (hp * 1.3);
-                    bossDamage = Math.min(bossDamage, 200000000L);
-                    bossMaxHealth = Math.min(bossMaxHealth, 2000000000L);
-                    boss.nPoint.hpMax = (int) bossMaxHealth;
-                    boss.nPoint.dame = (int) bossDamage;
-                    boss.nPoint.hp = boss.nPoint.hpMax;
-                } catch (Exception exception) {
+                case 57 -> {
+                    bHp = Math.min(avgDame * 50 * n, MAX_HP_CAP);
+                    bDame = Math.min((avgHp * 8) / 100, MAX_DAME_CAP);
                 }
             }
-        }
-
-    }
-
-    private void dispose() {
-        this.isOpened = false;
-        try {
-            this.removeTextDoanhTrai();
-            // remove bosses
-            for (Boss boss : bosses) {
-                if (boss != null && boss.zone != null) {
-                    boss.leaveMap();
-                }
-            }
-            // remove itemmap
-            this.clearAllItems();
-            this.bosses.clear();
-            this.winDT = false;
-        } catch (Exception e) {
-            nro.models.utils.Logger.logException(RedRibbonHQ.class, e);
-        } finally {
-            if (this.clan != null) {
-                this.clan.haveGoneDoanhTrai = true;
-                this.clan.doanhTrai = null;
-                this.clan = null;
-            }
-            this.isTimePicking = false;
+            boss.nPoint.hpMax = (int) Math.max(1L, bHp);
+            boss.nPoint.dame = (int) Math.max(1L, bDame);
+            boss.nPoint.hp = Math.min(boss.nPoint.hp, boss.nPoint.hpMax);
         }
     }
 }
