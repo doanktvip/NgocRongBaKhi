@@ -143,6 +143,7 @@ public class Player implements Runnable {
 
     public int timesPerDayBDKB = 0;
     public long lastTimeJoinBDKB;
+    public long lastTimeOpenBDKBSession;
 
     public boolean joinCDRD;
     public long lastTimeJoinCDRD;

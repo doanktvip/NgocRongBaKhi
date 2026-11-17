@@ -1,17 +1,18 @@
 package nro.models.boss.ban_do_kho_bau;
 
-
 import nro.models.boss.Boss;
-import nro.models.boss.BossData;
 import nro.models.boss.BossID;
+import nro.models.boss.BossesData;
 import nro.models.consts.BossStatus;
+import nro.models.consts.ConstItem;
 import nro.models.consts.ConstPlayer;
 import nro.models.boss.Boss_Manager.TreasureUnderSeaManager;
 import static nro.models.consts.BossType.PHOBANBDKB;
 import nro.models.map.ItemMap;
 import nro.models.map.Zone;
+import nro.models.map.phoban.BanDoKhoBau;
+import nro.models.player.DropItem;
 import nro.models.player.Player;
-import nro.models.skill.Skill;
 import nro.models.services.Service;
 import nro.models.services.TaskService;
 import nro.models.map.service.ChangeMapService;
@@ -19,37 +20,52 @@ import nro.models.utils.Util;
 
 public class TrungUyXanhLo extends Boss {
 
-    private static final int[][] FULL_DEMON = new int[][]{{Skill.DEMON, 1}, {Skill.DEMON, 2}, {Skill.DEMON, 3}, {Skill.DEMON, 4}, {Skill.DEMON, 5}, {Skill.DEMON, 6}, {Skill.DEMON, 7}};
+    private BanDoKhoBau bdkb;
+    private int level;
 
-    public TrungUyXanhLo(Zone zone, int level, int dame, int hp) throws Exception {
-        super(PHOBANBDKB, BossID.TRUNG_UY_XANH_LO, new BossData(
-                "Trung úy Xanh Lơ",
-                ConstPlayer.TRAI_DAT,
-                new short[]{135, 136, 137, -1, -1, -1},
-                (dame),
-                new int[]{hp},
-                new int[]{103},
-                (int[][]) Util.addArray(FULL_DEMON),
-                new String[]{},
-                new String[]{"|-1|Các ngươi tới số rồi mới gặp phải ta",
-                    "|-1|He he he",
-                    "|-1|Xem các ngươi mạnh đến đâu"},
-                new String[]{},
-                60
-        ));
+    public TrungUyXanhLo(BanDoKhoBau bdkb, Zone zone, int level, int dame, int hp) throws Exception {
+        super(PHOBANBDKB, BossID.TRUNG_UY_XANH_LO, BossesData.TRUNG_UY_XANH_LO_BDKB(dame, hp));
+        this.bdkb = bdkb;
         this.zone = zone;
+        this.level = level;
     }
 
     @Override
     public void reward(Player plKill) {
-        int diem = 5;
-        plKill.event.addEventPoint(diem);
-        Service.gI().sendThongBao(plKill, "+5 Point");
-        if (Util.isTrue(100, 100)) {
-            ItemMap it = new ItemMap(this.zone, 705, 1, this.location.x, this.zone.map.yPhysicInTop(this.location.x,
-                    this.location.y - 24), plKill.id);
-            Service.gI().dropItemMap(this.zone, it);         
-    }    }
+        if (plKill == null) {
+            return;
+        }
+        super.reward(plKill);
+
+        int soThoiVang = Math.min(20, Math.max(1, (int) Math.round(this.level * 20.0 / 100.0)));
+        DropItem.DropBuilder dropGold = this.drop(plKill);
+        for (int i = 0; i < soThoiVang; i++) {
+            dropGold.item(ConstItem.THOI_VANG, 1);
+        }
+        dropGold.executeAll();
+
+        int rateThanLinh = Math.min(10, Math.max(1, (int) Math.round(this.level / 10.0)));
+        this.drop(plKill).thanLinh().rate(rateThanLinh).execute();
+
+        int w1s = Math.max(1, this.level * 2);
+        int w2s = Math.max(2, this.level * 3);
+        int w3s = Math.max(3, this.level * 4);
+        int w4s = 150;
+        int w5s = Math.max(10, 300 - this.level * 2);
+        int w6s = Math.max(10, 400 - this.level * 3);
+        int w7s = Math.max(10, 500 - this.level * 4);
+
+        int[][] dragonBallWeights = new int[][]{
+            {ConstItem.NGOC_RONG_1_SAO, w1s},
+            {ConstItem.NGOC_RONG_2_SAO, w2s},
+            {ConstItem.NGOC_RONG_3_SAO, w3s},
+            {ConstItem.NGOC_RONG_4_SAO, w4s},
+            {ConstItem.NGOC_RONG_5_SAO, w5s},
+            {ConstItem.NGOC_RONG_6_SAO, w6s},
+            {ConstItem.NGOC_RONG_7_SAO, w7s}
+        };
+        this.drop(plKill).weighted(dragonBallWeights).execute();
+        }
 
     @Override
     public void joinMap() {
@@ -78,6 +94,9 @@ public class TrungUyXanhLo extends Boss {
     public void die(Player plKill) {
         if (plKill != null) {
             reward(plKill);
+        }
+        if (this.bdkb != null) {
+            this.bdkb.isBossKilled = true;
         }
         this.changeStatus(BossStatus.DIE);
     }

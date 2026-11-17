@@ -24,12 +24,15 @@ public class BanDoKhoBau extends AbstractClanDungeon {
     public static final long POWER_CAN_GO_TO_DBKB = 2000000000;
     public static final int AVAILABLE = 50;
     public static final int TIME_BAN_DO_KHO_BAU = 1800000;
+    public static final int TIME_KICKOUT_BDKB = 60000;
     public static final int MAX_TIMES_PER_DAY = 3;
     public static final int MIN_LEVEL = 1;
     public static final int MAX_LEVEL = 100;
     public static final long TIME_RESET_BDKB = 86400000L; // 24 giờ kể từ lần mở đầu tiên
     public Boss boss;
     public boolean allCharactersDead;
+    public boolean isBossKilled;
+    private long lastTimeSendTextTime;
 
     public BanDoKhoBau(int id) {
         super(id);
@@ -46,6 +49,7 @@ public class BanDoKhoBau extends AbstractClanDungeon {
             return;
         }
 
+        boolean allMobsDead = true;
         for (Zone zone : zones) {
             if (zone != null && zone.map != null && zone.map.mapId == 135) {
                 for (Player pl : zone.getNotBosses()) {
@@ -57,76 +61,78 @@ public class BanDoKhoBau extends AbstractClanDungeon {
                     }
                 }
             }
-        }
-        allCharactersDead = this.areAllCharactersDead();
 
-        if (!kickout && (allCharactersDead || Util.canDoWithTime(lastTimeOpen, TIME_BAN_DO_KHO_BAU - 60000))) {
-            kickout = true;
-            timeKickOut = System.currentTimeMillis();
-        }
-
-        if (kickout && Util.canDoWithTime(lastTimeSendNotify, 10000)) {
-            for (Zone zone : zones) {
-                if (zone != null) {
-                    List<Player> players = zone.getPlayers();
-                    if (players != null) {
-                        for (Player pl : players) {
-                            if (pl != null) {
-                                Service.gI().sendThongBao(pl, "Cái hang này sắp sập rồi, chúng ta phải rời khỏi đây ngay " + TimeUtil.getTimeLeft(timeKickOut, 60) + " nữa");
-                            }
-                        }
+            if (allMobsDead && zone != null && zone.mobs != null) {
+                for (Mob mob : zone.mobs) {
+                    if (mob != null && !mob.isDie()) {
+                        allMobsDead = false;
+                        break;
                     }
                 }
             }
-            lastTimeSendNotify = System.currentTimeMillis();
+        }
+
+        boolean allCleared = allMobsDead && this.isBossKilled;
+
+        if (!kickout && (allCleared || Util.canDoWithTime(lastTimeOpen, TIME_BAN_DO_KHO_BAU - 60000))) {
+            triggerKickout();
+        }
+
+        if (Util.canDoWithTime(lastTimeSendTextTime, 15000)) {
+            sendTextTime();
+            lastTimeSendTextTime = System.currentTimeMillis();
         }
     }
 
-    public void openBanDoKhoBau(Player plOpen, Clan clan, byte level) {
+    public boolean isBossDead() {
+        return this.isBossKilled;
+    }
+
+    public void triggerKickout() {
+        if (!this.kickout) {
+            this.kickout = true;
+            this.isBossKilled = true;
+            this.timeKickOut = System.currentTimeMillis();
+            sendTextTime();
+        }
+    }
+
+    /**
+     * Khởi động trạng thái nội bộ của phòng phó bản
+     */
+    public void startRoom(Clan clan, byte level) {
         try {
             this.level = level;
-            this.lastTimeOpen = plOpen.lastTimeJoinBDKB;
+            this.lastTimeOpen = System.currentTimeMillis();
             this.clan = clan;
-            this.clan.lastTimeOpenBanDoKhoBau = this.lastTimeOpen;
-            this.clan.playerOpenBanDoKhoBau = plOpen;
             this.clan.BanDoKhoBau = this;
+            this.clan.timeOpenBanDoKhoBau = this.lastTimeOpen;
             this.kickout = false;
             this.isOpened = true;
             this.allCharactersDead = false;
+            this.isBossKilled = false;
             this.init();
-            ChangeMapService.gI().goToDBKB(plOpen);
             sendTextTime();
         } catch (Exception e) {
             nro.models.utils.Logger.logException(BanDoKhoBau.class, e);
-            if (plOpen != null && plOpen.clan != null) {
-                plOpen.clan.lastTimeOpenBanDoKhoBau = 0;
-            }
             this.dispose();
         }
     }
 
+    @Deprecated
+    public void openBanDoKhoBau(Player plOpen, Clan clan, byte level) {
+        startRoom(clan, level);
+        if (plOpen != null) {
+            ChangeMapService.gI().goToDBKB(plOpen);
+        }
+    }
+
+    @Deprecated
     public void sendThanhTichBanDoKhoBau(Player pl) {
-        if (pl == null || pl.clan == null || pl.clan.BanDoKhoBau != this) {
-            return;
-        }
-
-        long timeDone = System.currentTimeMillis() - pl.clan.lastTimeOpenBanDoKhoBau;
-        int levelDone = pl.clan.BanDoKhoBau.level;
-        if (levelDone > pl.clan.levelDoneBanDoKhoBau) {
-            pl.clan.levelDoneBanDoKhoBau = levelDone;
-            pl.clan.thoiGianHoanThanhBDKB = timeDone;
-        } else if (levelDone == pl.clan.levelDoneBanDoKhoBau
-                && timeDone < pl.clan.thoiGianHoanThanhBDKB) {
-            pl.clan.thoiGianHoanThanhBDKB = timeDone;
-        }
-
-        pl.clan.updatethanhTichBDKB(pl.clan.id);
-        pl.clan.updatethanhTichBDKBForLeader();
-        pl.clan.updateThongTinLeader(pl.clan.id);
+        TreasureUnderSeaService.gI().updateThanhTich(pl, this);
     }
 
     private void init() {
-        // Hồi sinh quái và khởi tạo độ khó Hardcore theo cấp độ 1-100
         double scale = (double) this.level / (double) MAX_LEVEL;
         for (Zone zone : this.zones) {
             for (TrapMap trap : zone.trapMaps) {
@@ -158,13 +164,14 @@ public class BanDoKhoBau extends AbstractClanDungeon {
                 }
             }
 
-            if (zone.map.mapId == 138) {
+            if (zone.map.mapId == 137) {
                 try {
                     long bossDamage = (long) (20_000_000L * scale);
                     long bossMaxHealth = (long) (2_000_000_000L * scale);
                     bossDamage = Math.max(1_000L, Math.min(bossDamage, 20_000_000L));
                     bossMaxHealth = Math.max(10_000L, Math.min(bossMaxHealth, 2_000_000_000L));
                     boss = new TrungUyXanhLo(
+                            this,
                             zone,
                             level,
                             (int) bossDamage,
@@ -182,6 +189,7 @@ public class BanDoKhoBau extends AbstractClanDungeon {
     @Override
     protected void kickOut(Player player) {
         if (player != null && player.zone != null && player.zone.map != null) {
+            ItemTimeService.gI().removeTextBanDoKhoBau(player);
             if (MapService.gI().isMapBanDoKhoBau(player.zone.map.mapId)) {
                 ChangeMapService.gI().changeMapBySpaceShip(player, 5, -1, 1038);
             }
@@ -190,10 +198,19 @@ public class BanDoKhoBau extends AbstractClanDungeon {
 
     @Override
     protected void sendTextTime() {
-        if (this.clan != null && this.clan.membersInGame != null) {
-            for (Player pl : this.clan.membersInGame) {
-                if (pl != null) {
-                    ItemTimeService.gI().sendTextBanDoKhoBau(pl);
+        for (Zone zone : this.zones) {
+            if (zone != null) {
+                List<Player> players = zone.getPlayers();
+                if (players != null) {
+                    for (Player pl : players) {
+                        if (pl != null) {
+                            if (this.kickout) {
+                                ItemTimeService.gI().sendTextTimeSapBanDoKhoBau(pl);
+                            } else {
+                                ItemTimeService.gI().sendTextBanDoKhoBau(pl);
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -201,10 +218,15 @@ public class BanDoKhoBau extends AbstractClanDungeon {
 
     @Override
     protected void removeTextTime() {
-        if (this.clan != null && this.clan.membersInGame != null) {
-            for (Player pl : this.clan.membersInGame) {
-                if (pl != null) {
-                    ItemTimeService.gI().removeTextBanDoKhoBau(pl);
+        for (Zone zone : this.zones) {
+            if (zone != null) {
+                List<Player> players = zone.getPlayers();
+                if (players != null) {
+                    for (Player pl : players) {
+                        if (pl != null) {
+                            ItemTimeService.gI().removeTextBanDoKhoBau(pl);
+                        }
+                    }
                 }
             }
         }
@@ -220,13 +242,14 @@ public class BanDoKhoBau extends AbstractClanDungeon {
     @Override
     protected void onPlayerFinish(Player player) {
         if (player != null && player.clan != null && player.clan.BanDoKhoBau == this) {
-            sendThanhTichBanDoKhoBau(player);
+            TreasureUnderSeaService.gI().updateThanhTich(player, this);
         }
     }
 
     @Override
     protected void onResetExtraState() {
         this.allCharactersDead = false;
+        this.isBossKilled = false;
         this.boss = null;
     }
 }

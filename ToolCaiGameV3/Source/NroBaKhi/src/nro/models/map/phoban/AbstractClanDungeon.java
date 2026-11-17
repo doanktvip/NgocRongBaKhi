@@ -50,32 +50,40 @@ public abstract class AbstractClanDungeon implements Runnable {
     }
 
     public boolean areAllMobsDead() {
+        int mobCount = 0;
         for (Zone zone : this.zones) {
             if (zone != null && zone.mobs != null) {
                 for (Mob mob : zone.mobs) {
-                    if (mob != null && !mob.isDie()) {
-                        return false;
-                    }
-                }
-            }
-        }
-        return true;
-    }
-
-    public boolean areAllBossesDead() {
-        for (Zone zone : this.zones) {
-            if (zone != null) {
-                List<Player> zoneBosses = zone.getBosses();
-                if (zoneBosses != null) {
-                    for (Player b : zoneBosses) {
-                        if (b != null && !b.isDie()) {
+                    if (mob != null) {
+                        mobCount++;
+                        if (!mob.isDie()) {
                             return false;
                         }
                     }
                 }
             }
         }
-        return true;
+        return mobCount > 0;
+    }
+
+    public boolean areAllBossesDead() {
+        int bossCount = 0;
+        for (Zone zone : this.zones) {
+            if (zone != null) {
+                List<Player> zoneBosses = zone.getBosses();
+                if (zoneBosses != null) {
+                    for (Player b : zoneBosses) {
+                        if (b != null) {
+                            bossCount++;
+                            if (!b.isDie()) {
+                                return false;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return bossCount > 0;
     }
 
     public boolean areAllCharactersDead() {

@@ -1290,6 +1290,34 @@ public class BossesData {
                 .secondsRest(REST_1_M)
                 .build();
     }
+    //========================BOSS BDKB========================
+    public static BossData TRUNG_UY_XANH_LO_BDKB(int dame, int hp) {
+        return BossData.builder()
+                .name("Trung úy Xanh Lơ")
+                .gender(ConstPlayer.TRAI_DAT)
+                .outfit(new short[]{135, 136, 137, -1, -1, -1})
+                .dame(dame)
+                .hp(new int[]{hp})
+                .mapJoin(new int[]{103})
+                .skillTemp(new int[][]{
+                    {Skill.DEMON, 7},
+                    {Skill.DRAGON, 7},
+                    {Skill.GALICK, 7},
+                    {Skill.MASENKO, 7},
+                    {Skill.KAMEJOKO, 7},
+                    {Skill.ANTOMIC, 7},
+                    {Skill.THAI_DUONG_HA_SAN, 7}
+                })
+                .textS(new String[]{})
+                .textM(new String[]{
+                    "|-1|Các ngươi tới số rồi mới gặp phải ta",
+                    "|-1|He he he",
+                    "|-1|Xem các ngươi mạnh đến đâu"
+                })
+                .textE(new String[]{})
+                .secondsRest(REST_1_M)
+                .build();
+    }
     //========================BOSS 12H========================
     public static final BossData MABU_12H = new BossData(
             "Mabư",

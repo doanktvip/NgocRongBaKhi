@@ -28,6 +28,7 @@ import nro.models.services.AchievementService;
 import nro.models.services_dungeon.TrainingService;
 import nro.models.services.ChatGlobalService;
 import nro.models.services.ItemService;
+import nro.models.services.RewardService;
 import nro.models.map.service.MapService;
 import nro.models.skill.Skill;
 import nro.models.task.BadgesTaskService;
@@ -1046,6 +1047,79 @@ public class Mob {
 
         if ((Util.isTrue(10, 100) && MapService.gI().isMapNguHanhSon(mapid))) {
             list.add(new ItemMap(zone, Util.nextInt(541, 542), 1, x, yEnd, player.id));
+        }
+
+        //========================Bản Đồ Kho Báu (BDKB: Bigmob, Supermob, Mob thường)========================
+        if (MapService.gI().isMapBanDoKhoBau(mapid)) {
+            int levelBDKB = 1;
+            if (player.clan != null && player.clan.BanDoKhoBau != null) {
+                levelBDKB = player.clan.BanDoKhoBau.level;
+            }
+            boolean isBigMob = (this.tempId == 71 || this.tempId == 72); // 71: Vua Bạch Tuộc, 72: Rôbốt bảo vệ
+            boolean isSuperMob = (this.lvMob == 1 && !isBigMob);
+
+            if (isBigMob) {
+                // 1. Bigmob: Rơi 1 -> 5 thỏi vàng theo Level văng cánh sen bằng DropItem
+                int numTv = Math.min(5, Math.max(1, (int) Math.round(levelBDKB * 5.0 / 100.0)));
+                DropItem.DropBuilder dropGold = DropItem.to(player, this.zone, this.location.x, this.location.y);
+                for (int i = 0; i < numTv; i++) {
+                    dropGold.item(ConstItem.THOI_VANG, 1);
+                }
+                dropGold.executeAll();
+
+                // 2. Tỉ lệ rơi 1 món Thần Linh tối đa 3% ở Level 100
+                int rateTL = Math.max(1, (int) Math.round(levelBDKB * 3.0 / 100.0));
+                DropItem.to(player, this.zone, this.location.x, this.location.y)
+                        .thanLinh()
+                        .rate(rateTL)
+                        .execute();
+
+                // 3. Rơi 1 viên Ngọc Rồng (2s -> 5s) biến thiên theo level
+                int w2s = Math.max(1, levelBDKB * 2);
+                int w3s = Math.max(2, levelBDKB * 3);
+                int w4s = 100;
+                int w5s = Math.max(10, 200 - levelBDKB);
+                int[][] nrWeights = new int[][]{
+                    {ConstItem.NGOC_RONG_2_SAO, w2s},
+                    {ConstItem.NGOC_RONG_3_SAO, w3s},
+                    {ConstItem.NGOC_RONG_4_SAO, w4s},
+                    {ConstItem.NGOC_RONG_5_SAO, w5s}
+                };
+                DropItem.to(player, this.zone, this.location.x, this.location.y)
+                        .weighted(nrWeights)
+                        .execute();
+
+            } else if (isSuperMob) {
+                // Supermob (Quái Tinh Anh):
+                // 50% rơi 1 - 2 thỏi vàng (cấp >= 70 có cơ hội ra 2 thỏi)
+                int numTv = (levelBDKB >= 70 && Util.isTrue(50, 100)) ? 2 : 1;
+                DropItem.DropBuilder dropGold = DropItem.to(player, this.zone, this.location.x, this.location.y).rate(50);
+                for (int i = 0; i < numTv; i++) {
+                    dropGold.item(ConstItem.THOI_VANG, 1);
+                }
+                dropGold.executeAll();
+
+                // 30% rơi ngọc rồng 4s, 5s hoặc 6s
+                DropItem.to(player, this.zone, this.location.x, this.location.y)
+                        .random(ConstItem.NGOC_RONG_4_SAO, ConstItem.NGOC_RONG_5_SAO, ConstItem.NGOC_RONG_6_SAO)
+                        .rate(30)
+                        .execute();
+
+            } else {
+                // Mob Thường:
+                // 1% - 2% cơ hội rơi 1 Thỏi Vàng
+                int rateTv = Math.max(1, levelBDKB / 50);
+                DropItem.to(player, this.zone, this.location.x, this.location.y)
+                        .item(ConstItem.THOI_VANG, 1)
+                        .rate(rateTv)
+                        .execute();
+
+                // 5% cơ hội rơi Ngọc Rồng 6s hoặc 7s
+                DropItem.to(player, this.zone, this.location.x, this.location.y)
+                        .random(ConstItem.NGOC_RONG_6_SAO, ConstItem.NGOC_RONG_7_SAO)
+                        .rate(5)
+                        .execute();
+            }
         }
 
         if (this.zone.map.mapId >= 0) {

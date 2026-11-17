@@ -4,6 +4,7 @@ import nro.models.item.Item;
 import java.util.ArrayList;
 import java.util.List;
 import nro.models.map.Zone;
+import nro.models.map.service.ChangeMapService;
 import nro.models.player.Player;
 import nro.models.services.InventoryService;
 import nro.models.services.Service;
@@ -67,16 +68,19 @@ public class TreasureUnderSeaService extends AbstractClanDungeonService<BanDoKho
                             player.clan.lastTimeOpenBanDoKhoBau = now;
                         }
                         player.clan.timesPerDayBDKB++;
+                        player.clan.timeOpenBanDoKhoBau = now;
                         player.clan.updateBDKB();
 
                         if (player.timesPerDayBDKB == 0) {
                             player.lastTimeJoinBDKB = now;
                         }
                         player.timesPerDayBDKB++;
+                        player.lastTimeOpenBDKBSession = now;
 
                         InventoryService.gI().subQuantityItemsBag(player, item, 1);
                         InventoryService.gI().sendItemBags(player);
-                        banDoKhoBau.openBanDoKhoBau(player, player.clan, level);
+                        banDoKhoBau.startRoom(player.clan, level);
+                        ChangeMapService.gI().goToDBKB(player);
                     } else {
                         Service.gI().sendThongBao(player, "Hang kho báu đã đầy, hãy quay lại sau 30 phút");
                     }
@@ -87,5 +91,25 @@ public class TreasureUnderSeaService extends AbstractClanDungeonService<BanDoKho
                 Service.gI().sendThongBao(player, "Không thể thực hiện");
             }
         }
+    }
+
+    public void updateThanhTich(Player player, BanDoKhoBau banDoKhoBau) {
+        if (player == null || player.clan == null || banDoKhoBau == null || player.clan.BanDoKhoBau != banDoKhoBau) {
+            return;
+        }
+
+        long timeDone = System.currentTimeMillis() - banDoKhoBau.getLastTimeOpen();
+        int levelDone = banDoKhoBau.level;
+        if (levelDone > player.clan.levelDoneBanDoKhoBau) {
+            player.clan.levelDoneBanDoKhoBau = levelDone;
+            player.clan.thoiGianHoanThanhBDKB = timeDone;
+        } else if (levelDone == player.clan.levelDoneBanDoKhoBau
+                && timeDone < player.clan.thoiGianHoanThanhBDKB) {
+            player.clan.thoiGianHoanThanhBDKB = timeDone;
+        }
+
+        player.clan.updatethanhTichBDKB(player.clan.id);
+        player.clan.updatethanhTichBDKBForLeader();
+        player.clan.updateThongTinLeader(player.clan.id);
     }
 }

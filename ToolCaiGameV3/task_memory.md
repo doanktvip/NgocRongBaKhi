@@ -48,6 +48,250 @@
 
 ## 4. Lịch Sử Thực Thi Gần Nhất (Completed Tasks Log)
 
+* **[Đồng Bộ Toàn Bộ Quá Trình Rơi Đồ Quái BDKB Sang Hệ Thống DropItem]**:
+  * Đã chuyển đổi toàn bộ cơ chế rơi đồ của Bigmob, Supermob và Mob thường trong Bản Đồ Kho Báu tại [Mob.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/mob/Mob.java#L1052-L1115) sang dùng chuẩn **`DropItem.to(player, this.zone, this.location.x, this.location.y)`**:
+    1. **Bigmob**:
+       - `DropItem.to(...).item(ConstItem.THOI_VANG, 1)` lặp $1 \to 5$ thỏi theo level và `.executeAll()` bung tỏa cánh sen.
+       - `DropItem.to(...).thanLinh().rate(rateTL).execute()` cho đồ Thần Linh (tối đa 3%).
+       - `DropItem.to(...).weighted(nrWeights).execute()` cho Ngọc Rồng 2s–5s.
+    2. **Supermob**:
+       - `DropItem.to(...).item(ConstItem.THOI_VANG, 1).rate(50).executeAll()`.
+       - `DropItem.to(...).random(4s, 5s, 6s).rate(30).execute()`.
+    3. **Mob thường**:
+       - `DropItem.to(...).item(ConstItem.THOI_VANG, 1).rate(rateTv).execute()`.
+       - `DropItem.to(...).random(6s, 7s).rate(5).execute()`.
+  * Đảm bảo mọi vật phẩm rơi đều được kiểm soát chống văng ra ngoài map (`clampX`), tự động bám mặt sàn vật lý (`getGroundY`), tương thích bùa thu hút và hiển thị mượt mà.
+  * **File cập nhật**: [Mob.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/mob/Mob.java).
+  * **Biên dịch**: `javac` JDK 21 biên dịch thành công 100% tất cả các file vào `build/classes`.
+
+* **[Hệ Thống Rơi Đồ Toàn Diện Cho Bigmob, Supermob Và Mob Thường BDKB]**:
+  * Đã tích hợp cơ chế rơi đồ biến thiên theo cấp độ Level ($1 \to 100$) cho toàn bộ quái trong Bản Đồ Kho Báu tại [Mob.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/mob/Mob.java#L1050-L1130):
+    1. **Bigmob (Vua Bạch Tuộc & Robot bảo vệ)**:
+       - Rơi $1 \to 5$ Thỏi Vàng theo level (`level * 5 / 100`).
+       - Tỉ lệ rơi 1 món Thần Linh tối đa $3\%$ ở Level 100 bằng `RewardService.randItemDoCap(CAP_DO_THAN_LINH)`.
+       - Rơi 1 viên Ngọc Rồng từ 2s đến 5s với trọng số biến thiên theo level.
+    2. **Supermob (Quái Tinh Anh `lvMob == 1`)**:
+       - 50% cơ hội rơi $1 \to 2$ Thỏi Vàng (ở cấp $\ge 70$ cơ hội ra 2 thỏi).
+       - 30% cơ hội rơi Ngọc Rồng 4s, 5s hoặc 6s.
+    3. **Mob thường (`lvMob == 0`)**:
+       - $1\% \to 2\%$ cơ hội rơi 1 Thỏi Vàng.
+       - $5\%$ cơ hội rơi Ngọc Rồng 6s hoặc 7s.
+  * **File cập nhật**: [Mob.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/mob/Mob.java).
+  * **Biên dịch**: `javac` JDK 21 biên dịch thành công 100% tất cả các file vào `build/classes`.
+
+* **[Hệ Thống Rơi Đồ Toàn Diện Biến Thiên Theo Level Cho Boss Trung Úy Xanh Lơ (BDKB)]**:
+  * Đã áp dụng hệ số Level ($1 \to 100$) thống nhất cho toàn bộ cơ chế rơi đồ tại [TrungUyXanhLo.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/boss/ban_do_kho_bau/TrungUyXanhLo.java):
+    1. **Thỏi Vàng**: Tuyến tính từ 1 thỏi (Level 1) đến tối đa 20 thỏi (Level 100), tự động tỏa cánh sen bằng `DropItem.executeAll()`.
+    2. **Trang bị Thần Linh**: Tỉ lệ tăng dần theo cấp từ $1\%$ (Level 1) đến $10\%$ (Level 100) bằng `.thanLinh().rate(rateThanLinh).execute()`.
+    3. **Ngọc Rồng (1s -> 7s)**: Trọng số của từng viên biến thiên theo Level bằng `.weighted(dragonBallWeights).execute()`. Ở Level thấp chủ yếu ra 5s, 6s, 7s; ở Level 100 thì tỉ lệ ra 1s, 2s, 3s chiếm hơn 70%.
+    4. **Vật phẩm sự kiện & Point**: Rơi item 705 và cộng 5 điểm sự kiện.
+  * **File cập nhật**: [TrungUyXanhLo.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/boss/ban_do_kho_bau/TrungUyXanhLo.java).
+  * **Biên dịch**: `javac` JDK 21 biên dịch thành công 100% tất cả các file vào `build/classes`.
+
+* **[Ứng Dụng Fluent DropItem Cho Boss Trung Úy Xanh Lơ (BDKB)]**:
+  * Đã chuyển đổi toàn bộ cơ chế rơi đồ của Boss Trung Úy Xanh Lơ sang hệ thống `DropItem` (`this.drop(plKill)`):
+    1. **Thỏi vàng (ID 457)**: Tính theo công thức $\min(20, \max(1, \text{round}(\frac{\text{Level} \times 20}{100})))$, tự động bung tỏa rải rác từng thỏi hình cánh sen trên mặt sàn map bằng `DropItem.executeAll()`.
+    2. **Trang bị Thần Linh**: Tỉ lệ 5% rơi 1 món Thần Linh chuẩn option bằng `this.drop(plKill).thanLinh().rate(5).execute()`.
+    3. **Ngọc Rồng (1s, 2s, 3s)**: Rơi ngẫu nhiên 1 trong 3 viên Ngọc Rồng 1, 2, 3 sao bằng `this.drop(plKill).random(14, 15, 16).execute()`.
+    4. **Vật phẩm sự kiện**: Rơi item 705 và cộng 5 điểm sự kiện.
+  * **File cập nhật**: [TrungUyXanhLo.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/boss/ban_do_kho_bau/TrungUyXanhLo.java).
+  * **Biên dịch**: `javac` JDK 21 biên dịch thành công 100% tất cả các file vào `build/classes`.
+
+* **[Phần Thưởng Rơi Thỏi Vàng Rải Rác Từng Thỏi Theo Level Cho Boss Trung Úy Xanh Lơ (BDKB)]**:
+  * Đã xóa constructor overload thừa `TrungUyXanhLo(Zone, int, int, int)`.
+  * Lưu trữ biến `private int level;` từ constructor chính.
+  * Trong hàm `reward(Player plKill)`:
+    - Tính toán số thỏi vàng theo công thức tuyến tính: `int soThoiVang = Math.min(20, Math.max(1, (int) Math.round(this.level * 20.0 / 100.0)));`.
+      + Level 1–4: 1 thỏi.
+      + Level 50: 10 thỏi.
+      + Level 100: Tối đa 20 thỏi.
+    - Duyệt vòng lặp thả từng thỏi vàng (Item ID: 457, quantity = 1) rải rác xung quanh tọa độ của Boss trên sàn map bằng `Service.gI().dropItemMap(...)`.
+  * **File cập nhật**: [TrungUyXanhLo.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/boss/ban_do_kho_bau/TrungUyXanhLo.java).
+  * **Biên dịch**: `javac` JDK 21 biên dịch thành công 100% tất cả các file vào `build/classes`.
+
+* **[Chuyển Đổi Boss Trung Úy Xanh Lơ (BDKB) Sang BossesData Chuẩn Mẫu Doanh Trại]**:
+  * **1. Chuyển `new BossData(...)` sang `BossesData.java`**:
+    - Thêm hàm builder tĩnh `public static BossData TRUNG_UY_XANH_LO_BDKB(int dame, int hp)` trong [BossesData.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/boss/BossesData.java#L1192-L1220), cấu hình đầy đủ chỉ số, trang bị, skill `FULL_DEMON` và hội thoại chuẩn.
+  * **2. Refactor `TrungUyXanhLo.java` (BDKB) giống hệt cấu trúc Boss Doanh Trại**:
+    - Import `nro.models.boss.BossesData;` và `nro.models.map.phoban.BanDoKhoBau;`.
+    - Khai báo biến `private BanDoKhoBau bdkb;` và gán trong constructor.
+    - Gọi `super(PHOBANBDKB, BossID.TRUNG_UY_XANH_LO, BossesData.TRUNG_UY_XANH_LO_BDKB(dame, hp));`.
+  * **Các file cập nhật**:
+    - [BossesData.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/boss/BossesData.java)
+    - [TrungUyXanhLo.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/boss/ban_do_kho_bau/TrungUyXanhLo.java)
+  * **Biên dịch**: `javac` JDK 21 đã biên dịch thành công 100% tất cả các file vào `build/classes`.
+
+* **[Loại Bỏ Popup Thông Báo Vàng "Cái hang này sắp sập rồi...", Giữ Widget "Hang sắp sập: 60s" Gọn Đẹp Chuẩn Doanh Trại]**:
+  * Đã xóa bỏ hàm `notifyCollapse()` và toàn bộ lệnh gọi `Service.gI().sendThongBao(pl, "Cái hang này sắp sập rồi...")` trong [BanDoKhoBau.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/map/phoban/BanDoKhoBau.java).
+  * Thời gian sập hang đếm lùi 60 giây hiển thị hoàn toàn gọn đẹp và chuyên nghiệp qua duy nhất widget `"Hang sắp sập: 60s"` ở góc màn hình y hệt như widget `"Thu thập mảnh: 5'"` của Doanh Trại, không che khuất tầm nhìn người chơi bằng popup chữ vàng.
+  * **Biên dịch**: `javac` JDK 21 đã biên dịch thành công 100% tất cả các file vào `build/classes`.
+
+
+* **[Đồng Bộ Kiến Trúc Đếm Ngược Sập Hang BDKB Giống 100% Mẫu Doanh Trại]**:
+  * **1. Thiết kế cơ chế chuyển pha đếm ngược thời gian chuẩn Doanh Trại (`sendTextDoanhTrai` $\rightarrow$ `sendTextTimePickDoanhTrai`)**:
+    - **Pha 1 (Thám hiểm hang)**:
+      + Widget hiển thị `"Hang kho báu:"` (30 phút đếm lùi) qua `sendTextBanDoKhoBau(player)`.
+    - **Pha 2 (Hang sập - 60 giây)**:
+      + Khi đã tiêu diệt sạch toàn bộ mob và Boss Trung Úy Xanh Lơ (`allCleared = allMobsDead && isBossKilled`) hoặc khi phó bản còn 60s cuối cùng:
+      + `triggerKickout()` kích hoạt: `kickout = true`, `timeKickOut = System.currentTimeMillis()`.
+      + Gọi ngay `sendTextTime()`: Widget tự động chuyển mượt mà sang `"Hang sắp sập: 60s"` qua `sendTextTimeSapBanDoKhoBau(player)`.
+      + Đồng thời `notifyCollapse()` gửi popup thông báo chữ vàng: *"Cái hang này sắp sập rồi, chúng ta phải rời khỏi đây ngay 60s nữa"* (lặp lại định kỳ mỗi 10 giây và mỗi giây khi $\le 5$s).
+    - **Chống nhảy chữ tuyệt đối**:
+      + Trong `sendTextBanDoKhoBau`: Nếu `isKickout() == true` thì `return` ngay, không bao giờ gửi lại `"Hang kho báu:"` đè lên `"Hang sắp sập:"`.
+      + Trong `sendAllItemTime` và `sendTextTime`: Phân nhánh `if (bdkb.isKickout()) sendTextTimeSapBanDoKhoBau else sendTextBanDoKhoBau`, hoàn toàn giống hệt Doanh Trại `if (dt.isTimePicking) sendTextTimePickDoanhTrai else sendTextDoanhTrai`.
+  * **Các file cập nhật**:
+    - [ItemTimeService.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/services/ItemTimeService.java)
+    - [BanDoKhoBau.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/map/phoban/BanDoKhoBau.java)
+  * **Biên dịch**: `javac` JDK 21 biên dịch thành công 100% tất cả các file vào `build/classes`.
+
+
+* **[Sửa Chuẩn Xác 4 Điểm BDKB Theo Yêu Cầu & Gốc Teamobi2026]**:
+  * **1. Khôi phục text widget "Hang kho báu:" khi vào map**:
+    - Trong `Controller.java`: Ngay khi tàu đưa player vào Map 135, gọi ngay `ItemTimeService.gI().sendTextBanDoKhoBau(player)`.
+    - Trong `ChangeMapService.java` (`checkJoinSpecialMap`): Tự động gửi packet `sendTextBanDoKhoBau(player)` mỗi khi người chơi chuyển giữa các Map 135, 136, 137, 138.
+    - Trong `BanDoKhoBau.java`: Duyệt `this.zones` và các player trong zone để gọi `sendTextBanDoKhoBau(pl)` định kỳ mỗi 15 giây trong `update()`, đảm bảo widget luôn hiển thị ổn định 30 phút trên màn hình.
+  * **2. Đưa Boss Trung Úy Xanh Lơ về đúng Map 137 (Hang kho báu)**:
+    - Sửa điều kiện sinh Boss: `if (zone.map.mapId == 137)` (Hang kho báu - nơi có rương kho báu). Map 138 (Đáy hang kho báu) chỉ dành riêng cho Rôbốt bảo vệ (Mob 72).
+  * **3. Cơ chế sập hang: Bắt buộc tiêu diệt TOÀN BỘ MOB VÀ BOSS mới kích hoạt đếm ngược 60s**:
+    - Trong `BanDoKhoBau.update()`: Duyệt kiểm tra toàn bộ quái trong 4 map (`allMobsDead`), kết hợp với cờ `isBossKilled` (được bật khi người chơi đánh chết Boss Trung Úy Xanh Lơ).
+    - Chỉ khi `allMobsDead && isBossKilled` thì phó bản mới bắt đầu đếm ngược 60s và phát thông báo popup. Đánh chết boss mà quái chưa hết thì không kích hoạt đếm ngược.
+  * **4. Khôi phục 100% code gốc của Rôbốt Bảo Vệ từ Teamobi2026**:
+    - Ghi đè file `RobotBaoVe.java` bằng nguyên bản code từ `Teamobi2026/SRC/src/nro/models/mob_bigboss/RobotBaoVe.java` (đầy đủ các action 0, 1, 2 và bám mục tiêu theo player).
+  * **Các file cập nhật**:
+    - [RobotBaoVe.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/mob_bigboss/RobotBaoVe.java)
+    - [BanDoKhoBau.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/map/phoban/BanDoKhoBau.java)
+    - [TrungUyXanhLo.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/boss/ban_do_kho_bau/TrungUyXanhLo.java)
+    - [ChangeMapService.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/map/service/ChangeMapService.java)
+    - [Controller.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/server/Controller.java)
+    - [ItemTimeService.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/services/ItemTimeService.java)
+  * **Kiểm tra biên dịch**: Tất cả các file `.java` đã được `javac` biên dịch thành công 100% vào `build/classes`.
+
+
+* **[Đồng Bộ Chuẩn Gốc Teamobi2026: Giữ Widget "Hang kho báu:" 30 Phút Ổn Định & Thông Báo Đếm Ngược Sập Hang]**:
+  * **1. Khôi phục widget ItemTime "Hang kho báu:" đếm lùi 30 phút ổn định như bản gốc Teamobi2026**:
+    - **Nguyên nhân gây nhảy chữ**: Trước đây server gửi packet 65 với ID `BAN_DO_KHO_BAU = 1` lúc thì gửi `"Hang kho báu:"`, lúc lại ghi đè `"Hang sắp sập:"` mỗi khi chuyển map hoặc nhịp update, khiến Client Unity 2D bị giật và nhảy chữ lung tung.
+    - **Khắc phục**:
+      + Trong `ItemTimeService.java`: `sendAllItemTime` chỉ gọi duy nhất `sendTextBanDoKhoBau(player)`.
+      + `sendTextBanDoKhoBau(player)`: Loại bỏ điều kiện `|| bdkb.isKickout()`, giữ widget hiển thị ổn định xuyên suốt 30 phút từ lúc vào hang cho đến khi hang kết thúc.
+      + Vô hiệu hóa việc can thiệp ghi đè của `sendTextTimeSapBanDoKhoBau` lên widget này.
+  * **2. Bổ sung cơ chế thông báo đếm ngược thời gian sập hang chuẩn Teamobi2026**:
+    - Khi Boss Trung Úy Xanh Lơ bị tiêu diệt (`die(plKill)`) hoặc khi phó bản còn 60 giây cuối cùng: kích hoạt `triggerKickout()`.
+    - Phát thông báo popup hệ thống `Service.gI().sendThongBao`:
+      `"Cái hang này sắp sập rồi, chúng ta phải rời khỏi đây ngay " + secondsLeft + "s nữa"`
+      định kỳ mỗi 10 giây (và đếm lùi từng giây khi còn $\le 5$s) trực tiếp trên màn hình của tất cả người chơi trong các tầng hang, không làm ảnh hưởng hay xáo trộn widget góc trái.
+  * **3. Đặt Boss Trung Úy Xanh Lơ chuẩn xác tại Map 138 (Đáy hang kho báu)**:
+    - Trong `BanDoKhoBau.java`: Kiểm tra đúng `if (zone.map.mapId == 138)` để sinh Trung Úy Xanh Lơ tại bệ chỉ huy Map 138, hoàn toàn khớp với giao diện game của dự án.
+  * **Các file cập nhật**:
+    - [BanDoKhoBau.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/map/phoban/BanDoKhoBau.java)
+    - [TrungUyXanhLo.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/boss/ban_do_kho_bau/TrungUyXanhLo.java)
+    - [ItemTimeService.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/services/ItemTimeService.java)
+  * **Kiểm tra biên dịch**: Chạy `compile_check.bat`, trả về `[COMPILE_SUCCESS] Da bien dich va dong goi thanh cong NroBaKhi.jar!`.
+
+
+* **[Sửa Triệt Để Lỗi "Chưa Gì Đã Sập" & "RobotBaoVe Nhảy Lên Đầu Map Đẩy Người Chơi Qua Map Trước"]**:
+  * **1. Khắc phục lỗi "Vừa mở BDKB đã sập hang ngay" (`Hang sắp sập: 40s`, `15s`, `2s`)**:
+    - **Phát hiện nguyên nhân gốc rễ (Lõi vòng đời Boss)**:
+      + Khi tạo `new TrungUyXanhLo(...)`, boss ở trạng thái `BossStatus.REST`. Lúc này `initBase()` chưa được gọi, thuộc tính `nPoint.hp` của thực thể boss ban đầu bằng `0`.
+      + Hàm `Player.isDie()` kiểm tra `if (this.nPoint != null && this.nPoint.hp <= 0) return true;`. Do đó `this.boss.isDie()` ngay lập tức trả về `true` ngay từ tick 0.15s đầu tiên của phòng!
+      + Khi đó lệnh `if (this.boss != null && this.boss.isDie()) this.isBossKilled = true;` lập tức gán `isBossKilled = true` $\rightarrow$ `kickout = true` $\rightarrow$ hang bị sập ngay từ đầu!
+    - **Giải pháp dứt điểm**:
+      + Loại bỏ hoàn toàn việc kiểm tra `this.boss.isDie()` trong `BanDoKhoBau.update()`.
+      + Truyền tham chiếu `BanDoKhoBau` trực tiếp vào constructor `TrungUyXanhLo`.
+      + Cờ `isBossKilled = true` CHỈ ĐƯỢC PHÉP BẬT bên trong phương thức `TrungUyXanhLo.die(Player plKill)`. Khi người chơi đánh boss cạn máu thì boss mới kích hoạt cờ sập hang.
+      + Loại bỏ điều kiện kiểm tra `allCharactersDead` trong `BanDoKhoBau.update()` để hang chỉ đếm ngược sập khi Boss thực sự bị hạ gục hoặc khi hết 29 phút.
+  * **2. Khắc phục lỗi "RobotBaoVe nhảy lên đầu map khi tàn sát làm người chơi bị đẩy qua map trước"**:
+    - **Phát hiện nguyên nhân gốc rễ (Từ mã nguồn Client `BigBoss2.cs`)**:
+      + Đã tra cứu trực tiếp file mã nguồn Client `Mod-nro-unity/Assets/Scripts/BigBoss2.cs` (`updateMobAttack`):
+        * Khi `type == 0` (đấm cận chiến): Client thực thi `x += (charAttack[0].cx - x) / 4; xTo = x;` $\rightarrow$ kéo Robot bay lướt áp sát người chơi.
+        * Khi `type == 2` (húc): Client CŨNG thực thi `x += (charAttack[0].cx - x) / 4; xTo = x;` $\rightarrow$ kéo Robot bay lướt áp sát người chơi.
+        * **CHỈ DUY NHẤT `type == 1`**: Client chỉ gọi `MonsterDart.addMonsterDart` phóng đạn từ xa, hoàn toàn không có lệnh thay đổi tọa độ `x` hay `xTo`.
+      + Ở turn trước code để `action = (dis <= 150) ? 1 : 2;` nên khi người chơi ở xa, Robot tung `action = 2` khiến Client kéo Robot bay theo người chơi lên đầu map!
+    - **Giải pháp dứt điểm**:
+      + Trong `RobotBaoVe.java`: Khóa cứng duy nhất `action = 1`. Robot Bảo Vệ sẽ đứng yên 100% tại bệ $X = 492, Y = 336$ và chỉ bắn đạn `MonsterDart` từ xa, không bao giờ di chuyển hay lướt dù chỉ 1 pixel.
+      + Bổ sung cờ `isSentDie` trong `RobotBaoVe.update()` để chỉ gửi gói tin chết (`action = 6`) đúng 1 lần duy nhất, chống spam gói tin làm lag client.
+  * **Các file cập nhật**:
+    - [TrungUyXanhLo.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/boss/ban_do_kho_bau/TrungUyXanhLo.java)
+    - [BanDoKhoBau.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/map/phoban/BanDoKhoBau.java)
+    - [RobotBaoVe.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/mob_bigboss/RobotBaoVe.java)
+    - [AbstractClanDungeon.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/map/phoban/AbstractClanDungeon.java)
+  * **Kiểm tra biên dịch**: Đã biên dịch và đóng gói thành công 100% vào `NroBaKhi.jar` (`[COMPILE_SUCCESS]`).
+
+* **[Triệt Tiêu Hành Vi Nhảy Lên Đầu Map Của Rôbốt Bảo Vệ BDKB]**:
+  * **Thực hiện Giải pháp 1 (Stationary Defense BigMob)**:
+    - Xóa bỏ hoàn toàn dòng lệnh ép tọa độ `this.location.x = (short) player.location.x;` trong `RobotBaoVe.java`.
+    - Giữ cố định Rôbốt Bảo Vệ tại bệ canh gác trung tâm ($X = 492, Y = 336$).
+    - Bổ sung phạm vi giao chiến an toàn `dis <= 300`:
+      + Khi người chơi ở xa ($dis > 300$, đứng ở cổng vào $X = 60$), Rôbốt hoàn toàn không tấn công hay dịch chuyển, người chơi an toàn tuyệt đối khi vừa vào map.
+      + Khi người chơi tiến vào trong cự ly $\le 300$px, Rôbốt tung chiêu tương ứng: đấm cận chiến ($dis \le 100$), bắn laser ($dis \le 200$) hoặc bắn hỏa tiễn ($dis \le 300$).
+  * **File cập nhật**:
+    - [RobotBaoVe.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/mob_bigboss/RobotBaoVe.java)
+  * **Kiểm tra biên dịch**: `compile_check.bat` trả về `[COMPILE_SUCCESS] Da bien dich va dong goi thanh cong NroBaKhi.jar!`.
+
+* **[Khắc Phục Lỗi Mới Mở BDKB Chỉ Còn 4-5 Phút (Lệch Session Time)]**:
+  * **Phát hiện nguyên nhân gốc rễ**:
+    - Khi triển khai cơ chế "Reset 24h tính từ lần mở đầu tiên", trường `clan.lastTimeOpenBanDoKhoBau` được giữ nguyên làm mốc 24h của chu kỳ và không cập nhật lại ở các lần mở 2, 3.
+    - Tuy nhiên, trong `BanDoKhoBau.startRoom` lại gán `this.lastTimeOpen = clan.lastTimeOpenBanDoKhoBau;` và `ItemTimeService` cũng lấy mốc này trừ đi.
+    - Hậu quả: Khi người chơi mở lần thứ 2 cách lần đầu 26 phút, hệ thống lấy 30 phút trừ đi 26 phút đã trôi qua $\rightarrow$ phòng mới mở chỉ còn đúng $30 - 26 = 4$ phút (`Hang kho báu: 4'`), thậm chí lần 3 sau 30 phút sẽ bị hết giờ ngay khi vừa vào!
+  * **Giải pháp khắc phục toàn diện**:
+    - Tách bạch dứt điểm giữa **Mốc chu kỳ 24h** (`lastTimeOpenBanDoKhoBau`) và **Thời điểm mở phòng của phiên hiện tại** (`this.lastTimeOpen` / `clan.timeOpenBanDoKhoBau`):
+      + `BanDoKhoBau.startRoom`: `this.lastTimeOpen = System.currentTimeMillis();` (mỗi phòng mới mở LUÔN LUÔN được chơi đủ 30 phút = 1800s).
+      + `ItemTimeService.sendTextBanDoKhoBau`: Tính `secondPassed` dựa trên `bdkb.getLastTimeOpen()` $\rightarrow$ luôn hiển thị đủ 30 phút khi mới mở.
+      + `TreasureUnderSeaService.updateThanhTich`: Kỷ lục thời gian tính theo `now - bdkb.getLastTimeOpen()`.
+      + `ChangeMapService.goToDBKB` & `QuyLaoKame`: Bổ sung theo dõi phiên `player.lastTimeOpenBDKBSession` để không trừ trùng lượt khi người chơi chết hồi sinh vào lại cùng phiên, đồng thời ghi nhận chính xác lượt mở của phiên mới.
+  * **Các file cập nhật**:
+    - [BanDoKhoBau.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/map/phoban/BanDoKhoBau.java)
+    - [ItemTimeService.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/services/ItemTimeService.java)
+    - [TreasureUnderSeaService.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/map/phoban/TreasureUnderSeaService.java)
+    - [ChangeMapService.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/map/service/ChangeMapService.java)
+    - [QuyLaoKame.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/npc_list/QuyLaoKame.java)
+    - [Player.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/player/Player.java)
+  * **Kiểm tra biên dịch**: `compile_check.bat` trả về `[COMPILE_SUCCESS] Da bien dich va dong goi thanh cong NroBaKhi.jar!`.
+
+* **[Đồng Bộ Mẫu Thiết Kế 2 Hàm ItemTime BDKB Giống Doanh Trại]**:
+  * **Tách bạch 2 hàm hiển thị thời gian BDKB theo kiến trúc Doanh Trại (`sendTextDoanhTrai` & `sendTextTimePickDoanhTrai`)**:
+    - `sendTextBanDoKhoBau(Player player)`: Chuyên trách hiển thị thời gian thám hiểm hang kho báu thông thường (`"Hang kho báu:"`, tối đa 30 phút).
+    - `sendTextTimeSapBanDoKhoBau(Player player)`: Chuyên trách hiển thị thời gian đếm ngược 60 giây sập hang (`"Hang sắp sập:"`, đếm lùi từng giây).
+  * **Tích hợp tại các điểm gọi**:
+    - `sendAllItemTime`: Điều phối rẽ nhánh rõ ràng:
+      ```java
+      if (player.clan != null && player.clan.BanDoKhoBau != null && player.clan.BanDoKhoBau.isKickout()) {
+          ItemTimeService.gI().sendTextTimeSapBanDoKhoBau(player);
+      } else {
+          ItemTimeService.gI().sendTextBanDoKhoBau(player);
+      }
+      ```
+    - `BanDoKhoBau.sendKickoutTime`: Chỉ việc gọi `ItemTimeService.gI().sendTextTimeSapBanDoKhoBau(pl);`, đóng gói trọn vẹn logic tạo/gửi packet trong tầng Service.
+  * **Các file cập nhật**:
+    - [ItemTimeService.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/services/ItemTimeService.java)
+    - [BanDoKhoBau.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/map/phoban/BanDoKhoBau.java)
+  * **Kiểm tra biên dịch**: `javac` đã biên dịch thành công 100% tất cả các class vào `build/classes`.
+
+* **[Khắc Phục Lỗi Đồng Bộ Thời Gian Hang Kho Báu & Chốt Chặn Hoàn Thành BDKB]**:
+  * **Xử lý dứt điểm tình trạng "đi xong rồi sao không giảm đúng số giây còn lại"**:
+    - **Phát hiện nguyên nhân 1 (Chốt chặn hoàn thành)**: Trước đây `BanDoKhoBau` yêu cầu `allCharactersDead` (toàn bộ quái ở cả 4 tầng 135-138 + Boss đều phải chết). Người chơi thường hạ gục Boss Trung Úy Xanh Lơ ở Map 138 rồi quay lại Map 137 nhặt rương kho báu, nếu còn sót quái ở tầng 135/136 thì hang không bao giờ kích hoạt sập hang (`kickout`), dẫn đến đồng hồ vẫn treo 28-29 phút.
+    - Đã bổ sung `isBossDead()`: Ngay khi Boss Trung Úy Xanh Lơ bị tiêu diệt hoặc toàn bộ Boss/quái chết, phó bản lập tức ghi nhận hoàn thành và kích hoạt đếm ngược 60 giây sập hang (`kickout = true; timeKickOut = System.currentTimeMillis();`).
+    - **Phát hiện nguyên nhân 2 (Lệch giao thức ItemTime - Packet 65)**: Khi `kickout` diễn ra, server chỉ gửi thông báo vàng popup mà không gửi lại packet 65 cho client. Khi người chơi chuyển map về 137, `sendTextBanDoKhoBau` lại tính theo 30 phút ban đầu và ghi đè `28'` lên màn hình.
+    - Đã nâng cấp `ItemTimeService.sendTextBanDoKhoBau`:
+      + Tự động dọn sạch widget (`removeTextBanDoKhoBau`) khi người chơi ra khỏi map BDKB hoặc khi hang đã đóng.
+      + Khi hang đang trong 60 giây sập hang (`bdkb.isKickout()`), tự động chuyển tiêu đề và số giây đếm ngược: `"Hang sắp sập: 60s"`, `59s`... hiển thị đếm lùi từng giây chính xác trên màn hình.
+    - Đã bổ sung `sendKickoutTime()` trong `BanDoKhoBau.java` cập nhật tức thì cho toàn bộ người chơi trong hang ngay thời điểm hoàn thành và định kỳ mỗi 10 giây.
+  * **Các file cập nhật**:
+    - [BanDoKhoBau.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/map/phoban/BanDoKhoBau.java)
+    - [ItemTimeService.java](file:///d:/NgocRongBaKhi/ToolCaiGameV3/Source/NroBaKhi/src/nro/models/services/ItemTimeService.java)
+  * **Kiểm tra biên dịch**: `javac` đã biên dịch thành công 100% tất cả các class vào `build/classes` không có bất kỳ lỗi nào.
+
+* **[Tái Cấu Trúc Chuẩn Hóa Vai Trò Service vs Entity BDKB]**:
+  * **Chuyển `updateThanhTich` về đúng Tầng Service (`TreasureUnderSeaService`)**:
+    - Tách logic tính toán kỷ lục thời gian và ghi xuống MySQL của Bang hội ra khỏi `BanDoKhoBau.java`.
+    - `TreasureUnderSeaService` hiện đảm nhiệm hàm `updateThanhTich(Player player, BanDoKhoBau banDoKhoBau)`.
+    - `BanDoKhoBau.onPlayerFinish` chỉ kích hoạt sự kiện và ủy quyền lại cho Service xử lý Database.
+  * **Tách bạch khởi động phòng (`startRoom`) và chuyển map**:
+    - `BanDoKhoBau` hiện chỉ đảm nhiệm hàm `startRoom(Clan clan, byte level)` quản lý nội tại của phòng (reset cờ, quái, boss, virtual thread).
+    - `TreasureUnderSeaService` trực tiếp điều phối chuyển map cho người chơi sau khi phòng sẵn sàng (`ChangeMapService.gI().goToDBKB(player)`).
+  * **Đảm bảo tính tương thích ngược**:
+    - Giữ lại các alias cũ `@Deprecated` để tránh ảnh hưởng đến các module khác nếu có gọi tới.
+  * **Kiểm tra biên dịch**: Đã chạy `compile_check.bat`, trả về `[COMPILE_SUCCESS]`, xuất file `NroBaKhi.jar` thành công 100%.
+
 * **[Cập Nhật Giới Hạn Cấp 100, Reset Chu Kỳ 24h & Khóa Bang Hội BDKB]**:
   * **Reset đúng 24h từ bản đồ đầu tiên**:
     - Thay thế cơ chế reset nửa đêm (`isAfterMidnight`) bằng cơ chế đếm ngược 24 tiếng (`TIME_RESET_BDKB = 86400000L`).

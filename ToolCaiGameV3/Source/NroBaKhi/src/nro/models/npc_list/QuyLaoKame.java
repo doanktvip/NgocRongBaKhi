@@ -336,7 +336,8 @@ public class QuyLaoKame extends Npc {
                     if (Util.canDoWithTime(player.lastTimeJoinBDKB, BanDoKhoBau.TIME_RESET_BDKB)) {
                         player.timesPerDayBDKB = 0;
                     }
-                    if (player.clan.lastTimeOpenBanDoKhoBau != player.lastTimeJoinBDKB
+                    long sessionTime = player.clan.BanDoKhoBau.getLastTimeOpen();
+                    if (player.lastTimeOpenBDKBSession != sessionTime
                             && player.timesPerDayBDKB >= BanDoKhoBau.MAX_TIMES_PER_DAY) {
                         this.npcChat(player, "Con đã vào hang kho báu " + BanDoKhoBau.MAX_TIMES_PER_DAY + " lần trong 24 giờ qua rồi, hẹn gặp lại sau!");
                         return;

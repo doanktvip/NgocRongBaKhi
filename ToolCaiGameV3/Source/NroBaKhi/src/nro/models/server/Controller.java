@@ -174,6 +174,7 @@ public class Controller implements IMessageHandler {
                             if (player.idMark != null && player.idMark.isGoToBDKB()) {
                                 ChangeMapService.gI().changeMap(player, MapService.gI().getMapCanJoin(player, 135, -1), 35, 35);
                                 player.idMark.setGoToBDKB(false);
+                                ItemTimeService.gI().sendTextBanDoKhoBau(player);
                             }
                         } else if (player.type == 2 && player.maxTime == 5) {
                             if (MapService.gI().isMapHanhTinhThucVat(player.zone.map.mapId)) {

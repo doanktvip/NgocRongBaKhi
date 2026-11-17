@@ -11,6 +11,7 @@ import nro.models.map.phoban.BanDoKhoBau;
 import nro.models.map.phoban.SnakeWay;
 import nro.models.map.phoban.DestronGas;
 import nro.models.map.phoban.RedRibbonHQ;
+import nro.models.map.service.MapService;
 import nro.models.utils.Logger;
 
 /**
@@ -30,7 +31,11 @@ public class ItemTimeService {
     }
 
     public void sendAllItemTime(Player player) {
-        ItemTimeService.gI().sendTextBanDoKhoBau(player);
+        if (player.clan != null && player.clan.BanDoKhoBau != null && player.clan.BanDoKhoBau.isKickout()) {
+            ItemTimeService.gI().sendTextTimeSapBanDoKhoBau(player);
+        } else {
+            ItemTimeService.gI().sendTextBanDoKhoBau(player);
+        }
         if (player.clan != null && player.clan.doanhTrai != null && player.clan.doanhTrai.isTimePicking) {
             ItemTimeService.gI().sendTextTimePickDoanhTrai(player);
         } else {
@@ -111,7 +116,7 @@ public class ItemTimeService {
             }
         }
         if (player.itemTime.isUseKhoBauX2) {
-        //    sendItemTime(player, 12834, (int) ((TIME_MAY_DO - (System.currentTimeMillis() - player.itemTime.lastTimeUseKhoBauX2)) / 1000));
+            sendItemTime(player, 12834, (int) ((TIME_MAY_DO - (System.currentTimeMillis() - player.itemTime.lastTimeUseKhoBauX2)) / 1000));
         }
         if (player.itemTime.isUseBuaSanta) {
             sendItemTime(player, 13540, (int) ((TIME_BUA_SANTA - (System.currentTimeMillis() - player.itemTime.lastTimeBuaSanta)) / 1000));
@@ -208,14 +213,28 @@ public class ItemTimeService {
     }
 
     public void sendTextBanDoKhoBau(Player player) {
-        if (player.clan != null
-                && player.clan.lastTimeOpenBanDoKhoBau != 0) {
-            int secondPassed = (int) ((System.currentTimeMillis() - player.clan.lastTimeOpenBanDoKhoBau) / 1000);
+        if (player != null && player.clan != null && player.clan.BanDoKhoBau != null && player.clan.BanDoKhoBau.isOpened()) {
+            if (player.clan.BanDoKhoBau.isKickout()) {
+                return;
+            }
+            int secondPassed = (int) ((System.currentTimeMillis() - player.clan.BanDoKhoBau.getLastTimeOpen()) / 1000);
             int secondsLeft = (BanDoKhoBau.TIME_BAN_DO_KHO_BAU / 1000) - secondPassed;
             if (secondsLeft < 0 || secondsLeft > 1800) {
                 return;
             }
             sendTextTime(player, BAN_DO_KHO_BAU, "Hang kho báu:", secondsLeft);
+        }
+    }
+
+    public void sendTextTimeSapBanDoKhoBau(Player player) {
+        if (player != null && player.clan != null && player.clan.BanDoKhoBau != null && player.clan.BanDoKhoBau.isOpened()
+                && player.clan.BanDoKhoBau.isKickout()) {
+            int secondPassed = (int) ((System.currentTimeMillis() - player.clan.BanDoKhoBau.getTimeKickOut()) / 1000);
+            int secondsLeft = (BanDoKhoBau.TIME_KICKOUT_BDKB / 1000) - secondPassed;
+            if (secondsLeft < 0 || secondsLeft > 60) {
+                return;
+            }
+            sendTextTime(player, BAN_DO_KHO_BAU, "Hang sắp sập:", secondsLeft);
         }
     }
 

@@ -28,6 +28,7 @@ import nro.models.map.timed_map.BlackBallWarService;
 import nro.models.server.Manager;
 import nro.models.services.InventoryService;
 import nro.models.services.ItemService;
+import nro.models.services.ItemTimeService;
 import nro.models.services_dungeon.NgocRongNamecService;
 import nro.models.map.timed_map.TimedMapManager;
 
@@ -850,15 +851,22 @@ public class ChangeMapService {
             if (Util.canDoWithTime(player.lastTimeJoinBDKB, BanDoKhoBau.TIME_RESET_BDKB)) {
                 player.timesPerDayBDKB = 0;
             }
-            if (player.clan != null && player.lastTimeJoinBDKB != player.clan.lastTimeOpenBanDoKhoBau) {
-                if (player.timesPerDayBDKB >= BanDoKhoBau.MAX_TIMES_PER_DAY) {
-                    Service.gI().sendThongBao(player, "Bạn đã vào hang kho báu " + BanDoKhoBau.MAX_TIMES_PER_DAY + " lần trong 24 giờ qua, hẹn gặp lại sau");
-                    return;
+            if (player.clan != null && player.clan.BanDoKhoBau != null) {
+                long sessionTime = player.clan.BanDoKhoBau.getLastTimeOpen();
+                if (player.lastTimeOpenBDKBSession != sessionTime) {
+                    if (Util.canDoWithTime(player.lastTimeJoinBDKB, BanDoKhoBau.TIME_RESET_BDKB)) {
+                        player.timesPerDayBDKB = 0;
+                    }
+                    if (player.timesPerDayBDKB >= BanDoKhoBau.MAX_TIMES_PER_DAY) {
+                        Service.gI().sendThongBao(player, "Bạn đã vào hang kho báu " + BanDoKhoBau.MAX_TIMES_PER_DAY + " lần trong 24 giờ qua, hẹn gặp lại sau");
+                        return;
+                    }
+                    if (player.timesPerDayBDKB == 0) {
+                        player.lastTimeJoinBDKB = System.currentTimeMillis();
+                    }
+                    player.timesPerDayBDKB++;
+                    player.lastTimeOpenBDKBSession = sessionTime;
                 }
-                if (player.timesPerDayBDKB == 0) {
-                    player.lastTimeJoinBDKB = player.clan.lastTimeOpenBanDoKhoBau;
-                }
-                player.timesPerDayBDKB++;
             }
             player.idMark.setLastTimeGoToBDKB(System.currentTimeMillis());
             player.idMark.setGoToBDKB(true);
@@ -1084,6 +1092,12 @@ public class ChangeMapService {
                 case 90:
                 case 91:
                     BlackBallWarService.gI().joinMapBlackBallWar(player);
+                    break;
+                case 135:
+                case 136:
+                case 137:
+                case 138:
+                    ItemTimeService.gI().sendTextBanDoKhoBau(player);
                     break;
             }
         }
